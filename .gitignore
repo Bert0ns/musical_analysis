@@ -1,0 +1,8 @@
+.idea/
+.venv
+.venv/
+__pycache__/
+songs/
+/cluster_audio.png
+/cluster_evaluation.png
+/tsne_clusters.png
