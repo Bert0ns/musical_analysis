@@ -5,7 +5,7 @@ from extract_data_features import get_audio_features
 CSV_FEATURE_FILENAME = "audio_features.csv"
 SONGS_DIR = "songs"  # Cambia con il percorso della tua cartella di canzoni
 
-N_CLUSTERS = 14  # Numero di cluster da creare
+N_CLUSTERS = 6  # Numero di cluster da creare
 
 if __name__ == "__main__":
     print("Caricamento delle feature audio...")
