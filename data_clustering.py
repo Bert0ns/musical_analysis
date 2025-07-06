@@ -25,7 +25,8 @@ def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
     # Applica spectral clustering
     model = SpectralClustering(n_clusters=n_clusters,
                                affinity='precomputed',
-                               random_state=42)
+                               random_state=42,
+                               )
 
     # Addestra il modello e ottieni le etichette
     labels = model.fit_predict(affinity_matrix)

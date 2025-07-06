@@ -1,18 +1,36 @@
 from data_clustering import spectral_clustering_classifier, visualizza_risultati, analizza_cluster, \
     trova_brani_rappresentativi, visualizza_tsne, valuta_cluster
 from extract_data_features import get_audio_features
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.decomposition import PCA
+import numpy as np
 
 CSV_FEATURE_FILENAME = "audio_features.csv"
 SONGS_DIR = "songs"  # Cambia con il percorso della tua cartella di canzoni
 
-N_CLUSTERS = 6  # Numero di cluster da creare
+N_CLUSTERS = 10  # Numero di cluster da creare
 
 if __name__ == "__main__":
     print("Caricamento delle feature audio...")
     filenames, features = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
     print("Shape feature array:", features.shape)
+
+    # Rimozione dei duplicati
+    features, unique_indices = np.unique(features, axis=0, return_index=True)
+    filenames = [filenames[i] for i in unique_indices]
+    print("Shape feature array dopo rimozione duplicati:", features.shape)
+
+    # Normalizzazione delle feature (MinMax: range 0-1)
+    scaler = MinMaxScaler()
+    features = scaler.fit_transform(features)
+
+    # Riduzione della dimensionalità con PCA
+    pca = PCA(n_components=0.99, svd_solver='full')  # Mantiene quasi il 100% della varianza
+    features = pca.fit_transform(features)
+    print("Shape feature array dopo PCA:", features.shape)
+
     print(f"Esecuzione del spectral clustering con {N_CLUSTERS} cluster...")
-    labels = spectral_clustering_classifier(features=features, n_clusters=N_CLUSTERS, gamma=1)
+    labels = spectral_clustering_classifier(features=features, n_clusters=N_CLUSTERS, gamma=0.1)
 
     print("Classificazione completata!")
     visualizza_risultati(filenames, features, labels)
