@@ -2,3 +2,4 @@ numpy
 librosa
 scikit-learn
 matplotlib
+scipy
