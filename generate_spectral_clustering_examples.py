@@ -104,14 +104,15 @@ def fig_2_3():
     X, _ = make_moons(n_samples=600, noise=0.06, random_state=RANDOM_STATE)
     # gamma = 1/(2*sigma^2)
     gammas = [0.5, 50.0]  # sigma grande vs sigma piccolo
-    titles = [f"RBF gamma={gammas[0]} (sigma grande)", f"RBF gamma={gammas[1]} (sigma piccolo)"]
+    titles = [f"RBF sigma={gammas[1]}", f"RBF sigma={gammas[0]}"]
+    custom_cmap = plt.matplotlib.colors.ListedColormap(["#7B1FA2", "#FF9800"])  # viola, arancione
 
     fig, axes = plt.subplots(1, 2, figsize=(8, 3.6))
     for ax, g, title in zip(axes, gammas, titles):
         sp = SpectralClustering(n_clusters=2, affinity="rbf", gamma=g,
                                 assign_labels="kmeans", random_state=RANDOM_STATE)
         y_sp = sp.fit_predict(X)
-        scatter2d(X, y_sp, title, ax=ax)
+        scatter2d(X, y_sp, title, ax=ax, cmap=custom_cmap)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "02_03_rbf_gamma_effect.png"), dpi=160)
     plt.close(fig)
