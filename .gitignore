@@ -7,3 +7,4 @@ songs/
 /cluster_evaluation.png
 /tsne_clusters.png
 figs/
+figs_kmeans/

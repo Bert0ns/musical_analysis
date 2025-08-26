@@ -8,7 +8,7 @@ import numpy as np
 CSV_FEATURE_FILENAME = "audio_features.csv"
 SONGS_DIR = "songs"  # Cambia con il percorso della tua cartella di canzoni
 
-N_CLUSTERS = 10  # Numero di cluster da creare
+N_CLUSTERS = 20  # Numero di cluster da creare
 
 if __name__ == "__main__":
     print("Caricamento delle feature audio...")
