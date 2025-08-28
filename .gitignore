@@ -8,3 +8,5 @@ songs/
 /tsne_clusters.png
 figs/
 figs_kmeans/
+figs_dbscan/
+figs_spectral_clustering/

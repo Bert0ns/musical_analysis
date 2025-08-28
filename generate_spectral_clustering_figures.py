@@ -15,7 +15,7 @@ from scipy.sparse.linalg import eigsh
 RANDOM_STATE = 42
 np.random.seed(RANDOM_STATE)
 
-OUT_DIR = "figs"
+OUT_DIR = "figs_spectral_clustering"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # Utility plotting

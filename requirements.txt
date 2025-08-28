@@ -3,3 +3,5 @@ librosa
 scikit-learn
 matplotlib
 scipy
+
+seaborn
