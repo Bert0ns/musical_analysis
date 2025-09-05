@@ -11,7 +11,7 @@ from sklearn.metrics import silhouette_score
 RANDOM_STATE = 42
 np.random.seed(RANDOM_STATE)
 
-OUT_DIR = "figs_kmeans"
+OUT_DIR = "../figs_kmeans"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 def scatter2d(X, labels=None, title="", ax=None, s=14, cmap="tab10"):

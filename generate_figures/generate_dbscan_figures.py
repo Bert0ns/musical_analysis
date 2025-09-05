@@ -58,7 +58,7 @@ from sklearn.preprocessing import StandardScaler
 RANDOM_STATE = 42
 np.random.seed(RANDOM_STATE)
 
-OUT_DIR = "figs_dbscan"
+OUT_DIR = "../figs_dbscan"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ---------- Utility ----------
