@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
-from lib.data_clustering import spectral_clustering_classifier, trova_brani_rappresentativi, valuta_clustering, \
+from lib.spectral_clustering import spectral_clustering_classifier, trova_brani_rappresentativi, valuta_clustering, \
     silhouette_score_analysis_spectral_clustering
 from lib.extract_data_features import get_audio_features
 from lib.utils import salva_risultati_markdown, visualizza_tsne, analizza_cluster, plot_clusters_results

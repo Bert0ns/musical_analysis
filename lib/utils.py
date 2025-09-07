@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 
-from lib.data_clustering import distribuzione_generi_per_cluster
+from lib.spectral_clustering import distribuzione_generi_per_cluster
 
 def plot_clusters_results(filenames, features, labels, fig_name='clustering_results/clusters.png', show_fig=False):
     """
