@@ -36,7 +36,7 @@ def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
     return labels
 
 
-def visualizza_risultati(filenames, features, labels, fig_name='clustering_results/clusters.png'):
+def visualizza_risultati(filenames, features, labels, fig_name='clustering_results/clusters.png', show_fig=False):
     """
     Visualizza i risultati della clusterizzazione.
     """
@@ -52,7 +52,8 @@ def visualizza_risultati(filenames, features, labels, fig_name='clustering_resul
     plt.xlabel('Componente Principale 1')
     plt.ylabel('Componente Principale 2')
     plt.savefig(fig_name)
-    plt.show()
+    if show_fig:
+        plt.show()
 
     # Mostra i brani in ogni cluster
     print("\nContenuto dei cluster:")
@@ -97,7 +98,7 @@ def trova_brani_rappresentativi(features, labels, filenames, n=3):
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
-def visualizza_tsne(features, labels, filenames, fig_name='clustering_results/clusters_tsne.png'):
+def visualizza_tsne(features, labels, filenames, fig_name='clustering_results/clusters_tsne.png', show_fig=False):
     # Riduzione dimensionale con t-SNE (migliore per visualizzare cluster)
     tsne = TSNE(n_components=2, random_state=42)
     features_2d = tsne.fit_transform(features)
@@ -113,10 +114,11 @@ def visualizza_tsne(features, labels, filenames, fig_name='clustering_results/cl
         plt.annotate(filenames[i].split('/')[-1], (features_2d[i, 0], features_2d[i, 1]))
 
     plt.savefig(fig_name)
-    plt.show()
+    if show_fig:
+        plt.show()
 
 
-def valuta_cluster(features, labels, fig_name='clustering_results/cluster_evaluation.png'):
+def valuta_cluster(features, labels, fig_name='clustering_results/cluster_evaluation.png', show_fig=False):
     silhouette = silhouette_score(features, labels)
     davies_bouldin = davies_bouldin_score(features, labels)
 
@@ -143,7 +145,8 @@ def valuta_cluster(features, labels, fig_name='clustering_results/cluster_evalua
     plt.title('Valutazione del numero ottimale di cluster')
     plt.grid(True)
     plt.savefig(fig_name)
-    plt.show()
+    if show_fig:
+        plt.show()
 
 
 def salva_risultati_markdown(filenames, features, labels, feature_names=None, path='clustering_results/report.md', n_repr=5):
