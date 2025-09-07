@@ -7,13 +7,14 @@ import numpy as np
 
 CSV_FEATURE_FILENAME = "dataset/audio_features.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
+RESULTS = "clustering_results"
 
 N_CLUSTERS = 18  # Numero di cluster da creare
 PCA_COMPONENTS = 0.99  # Percentuale di varianza da mantenere con PCA
 
 if __name__ == "__main__":
     print("Caricamento delle feature audio...")
-    filenames, file_dirs, features = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
+    filenames, file_dirs, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
     print("Shape feature array:", features.shape)
 
     # Rimozione dei duplicati
@@ -34,10 +35,10 @@ if __name__ == "__main__":
     labels = spectral_clustering_classifier(features=features, n_clusters=N_CLUSTERS, gamma=0.1)
 
     print("Classificazione completata!")
-    visualizza_risultati(filenames, features, labels)
+    visualizza_risultati(filenames, features, labels, RESULTS + "/clusters_plot.png")
 
     print("Analisi dei cluster...")
     analizza_cluster(features, labels)
     trova_brani_rappresentativi(features, labels, filenames)
-    visualizza_tsne(features, labels, filenames)
-    valuta_cluster(features, labels)
+    visualizza_tsne(features, labels, filenames, RESULTS + "/tsne_clusters_plot.png")
+    valuta_cluster(features, labels, RESULTS + "/cluster_evaluation.png")

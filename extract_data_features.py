@@ -309,17 +309,18 @@ def read_features_from_csv(csv_filename):
             features = np.array([float(x) for x in row[2:]])
             feature_list.append(features)
     feature_array = np.vstack(feature_list)
-    return filenames, file_dirs, feature_array
+    feature_names = header[2:]
+    return filenames, file_dirs, feature_array, feature_names
 
 
 def get_audio_features(audio_dir, csv_filename):
     if os.path.exists(csv_filename):
         print(f"Caricamento feature da {csv_filename}")
-        filenames, file_dirs, features = read_features_from_csv(csv_filename)
-        return filenames, file_dirs, features
+        filenames, file_dirs, features, feature_names = read_features_from_csv(csv_filename)
+        return filenames, file_dirs, features, feature_names
     else:
         print("Estrazione feature dai file audio...")
         filenames, file_dirs, features, feature_names = extract_features_from_directory(audio_dir)
         save_features_to_csv(filenames, file_dirs, features, feature_names, csv_filename)
         print(f"Feature salvate in {csv_filename}")
-        return filenames, file_dirs, features
+        return filenames, file_dirs, features, feature_names

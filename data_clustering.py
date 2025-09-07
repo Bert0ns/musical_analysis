@@ -34,7 +34,7 @@ def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
     return labels
 
 
-def visualizza_risultati(filenames, features, labels):
+def visualizza_risultati(filenames, features, labels, fig_name='clustering_results/clusters.png'):
     """
     Visualizza i risultati della clusterizzazione.
     """
@@ -49,7 +49,7 @@ def visualizza_risultati(filenames, features, labels):
     plt.title('Clustering Spettrale delle Canzoni')
     plt.xlabel('Componente Principale 1')
     plt.ylabel('Componente Principale 2')
-    plt.savefig('cluster_audio.png')
+    plt.savefig(fig_name)
     plt.show()
 
     # Mostra i brani in ogni cluster
@@ -95,7 +95,7 @@ def trova_brani_rappresentativi(features, labels, filenames, n=3):
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
-def visualizza_tsne(features, labels, filenames):
+def visualizza_tsne(features, labels, filenames, fig_name='clustering_results/clusters_tsne.png'):
     # Riduzione dimensionale con t-SNE (migliore per visualizzare cluster)
     tsne = TSNE(n_components=2, random_state=42)
     features_2d = tsne.fit_transform(features)
@@ -110,11 +110,11 @@ def visualizza_tsne(features, labels, filenames):
     for i in range(0, len(filenames), len(filenames) // 20):  # Mostra circa 20 etichette
         plt.annotate(filenames[i].split('/')[-1], (features_2d[i, 0], features_2d[i, 1]))
 
-    plt.savefig('tsne_clusters.png')
+    plt.savefig(fig_name)
     plt.show()
 
 
-def valuta_cluster(features, labels):
+def valuta_cluster(features, labels, fig_name='clustering_results/cluster_evaluation.png'):
     silhouette = silhouette_score(features, labels)
     davies_bouldin = davies_bouldin_score(features, labels)
 
@@ -140,5 +140,5 @@ def valuta_cluster(features, labels):
     plt.ylabel('Silhouette Score')
     plt.title('Valutazione del numero ottimale di cluster')
     plt.grid(True)
-    plt.savefig('cluster_evaluation.png')
+    plt.savefig(fig_name)
     plt.show()
