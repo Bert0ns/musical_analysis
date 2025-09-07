@@ -28,7 +28,6 @@ def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
 
     # Addestra il modello e ottieni le etichette
     labels = model.fit_predict(affinity_matrix)
-
     return labels
 
 
@@ -50,35 +49,45 @@ def trova_brani_rappresentativi(features, labels, filenames, n=3):
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
-def valuta_cluster(features, labels, fig_name='clustering_results/cluster_evaluation.png', show_fig=False):
+def valuta_clustering(features, labels):
     silhouette = silhouette_score(features, labels)
     davies_bouldin = davies_bouldin_score(features, labels)
-
     print(f"Silhouette Score: {silhouette:.3f} (più alto è migliore, max 1)")
     print(f"Davies-Bouldin Index: {davies_bouldin:.3f} (più basso è migliore)")
 
-    # Prova diversi numeri di cluster
+
+def silhouette_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 20), fig_name='clustering_results/silhouette_analysis_spectral_clustering.png', show_fig=False):
+    """Esegue un'analisi dello silhouette score per diversi numeri di cluster
+    utilizzando lo spectral clustering. Restituisce i risultati come lista di tuple (k, silhouette_score).
+    """
     risultati = []
-    for k in range(2, 20):
+    for k in range(range_k[0], range_k[1]):
         try:
-            labels_k = spectral_clustering_classifier(features, n_clusters=k)
+            labels_k = spectral_clustering_classifier(features, n_clusters=k, gamma=gamma)
             sil = silhouette_score(features, labels_k)
             risultati.append((k, sil))
         except:
             pass
 
-    # Visualizza i risultati
+    # Plot dei risultati
     k_values = [r[0] for r in risultati]
     sil_values = [r[1] for r in risultati]
+
+    best_idx = int(np.argmax(sil_values))
+    best_k = k_values[best_idx]
+    best_sil = sil_values[best_idx]
+
     plt.figure(figsize=(10, 6))
     plt.plot(k_values, sil_values, 'o-')
     plt.xlabel('Numero di cluster')
     plt.ylabel('Silhouette Score')
-    plt.title('Valutazione del numero ottimale di cluster')
+    plt.title(f'Valutazione del numero ottimale di cluster (k={best_k}, Silhouette={best_sil:.3f})')
     plt.grid(True)
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
+
+    return risultati
 
 
 def distribuzione_generi_per_cluster(labels, generi):

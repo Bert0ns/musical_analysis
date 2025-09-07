@@ -9,7 +9,7 @@ from sklearn.metrics import silhouette_score, davies_bouldin_score
 
 from lib.data_clustering import distribuzione_generi_per_cluster
 
-def visualizza_risultati(filenames, features, labels, fig_name='clustering_results/clusters.png', show_fig=False):
+def plot_clusters_results(filenames, features, labels, fig_name='clustering_results/clusters.png', show_fig=False):
     """
     Visualizza i risultati della clusterizzazione.
     """
