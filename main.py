@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
-from data_clustering import spectral_clustering_classifier, trova_brani_rappresentativi, valuta_cluster
-from extract_data_features import get_audio_features
-from utils import salva_risultati_markdown, visualizza_tsne, analizza_cluster, visualizza_risultati
+from lib.data_clustering import spectral_clustering_classifier, trova_brani_rappresentativi, valuta_cluster
+from lib.extract_data_features import get_audio_features
+from lib.utils import salva_risultati_markdown, visualizza_tsne, analizza_cluster, visualizza_risultati
 
 CSV_FEATURE_FILENAME = "dataset/audio_features.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
