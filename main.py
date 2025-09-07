@@ -1,5 +1,5 @@
 from data_clustering import spectral_clustering_classifier, visualizza_risultati, analizza_cluster, \
-    trova_brani_rappresentativi, visualizza_tsne, valuta_cluster
+    trova_brani_rappresentativi, visualizza_tsne, valuta_cluster, salva_risultati_markdown
 from extract_data_features import get_audio_features
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
@@ -24,21 +24,32 @@ if __name__ == "__main__":
 
     # Normalizzazione delle feature (MinMax: range 0-1)
     scaler = MinMaxScaler()
-    features = scaler.fit_transform(features)
+    features_norm = scaler.fit_transform(features)
+
+    # Copia per report dettagliato (prima della PCA)
+    features_norm_original = features_norm.copy()
 
     # Riduzione della dimensionalità con PCA
     pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full')  # Mantiene quasi il 100% della varianza
-    features = pca.fit_transform(features)
-    print("Shape feature array dopo PCA:", features.shape)
+    features_reduced = pca.fit_transform(features_norm)
+    print("Shape feature array dopo PCA:", features_reduced.shape)
 
     print(f"Esecuzione del spectral clustering con {N_CLUSTERS} cluster...")
-    labels = spectral_clustering_classifier(features=features, n_clusters=N_CLUSTERS, gamma=0.1)
+    labels = spectral_clustering_classifier(features=features_reduced, n_clusters=N_CLUSTERS, gamma=0.1)
 
     print("Classificazione completata!")
-    visualizza_risultati(filenames, features, labels, RESULTS + "/clusters_plot.png")
+    visualizza_risultati(filenames, features_reduced, labels, RESULTS + "/clusters_plot.png")
 
     print("Analisi dei cluster...")
-    analizza_cluster(features, labels)
-    trova_brani_rappresentativi(features, labels, filenames)
-    visualizza_tsne(features, labels, filenames, RESULTS + "/tsne_clusters_plot.png")
-    valuta_cluster(features, labels, RESULTS + "/cluster_evaluation.png")
+    analizza_cluster(features_reduced, labels)
+    trova_brani_rappresentativi(features_reduced, labels, filenames)
+    visualizza_tsne(features_reduced, labels, filenames, RESULTS + "/tsne_clusters_plot.png")
+    valuta_cluster(features_reduced, labels, RESULTS + "/cluster_evaluation.png")
+
+    print("Generazione report Markdown...")
+    # Report principale (sulle feature ridotte usate per il clustering)
+    report_path = salva_risultati_markdown(filenames, features_reduced, labels, feature_names=None, path=RESULTS + "/report.md", n_repr=5)
+    # Report opzionale con statistiche sulle feature originali normalizzate (senza PCA) usando i nomi
+    report_detailed_path = salva_risultati_markdown(filenames, features_norm_original, labels, feature_names=features_names, path=RESULTS + "/report_dettagliato_feature_originali.md", n_repr=5)
+    print(f"Report generato: {report_path}")
+    print(f"Report dettagliato generato: {report_detailed_path}")
