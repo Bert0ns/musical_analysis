@@ -9,8 +9,10 @@ CSV_FEATURE_FILENAME = "dataset/audio_features.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
 RESULTS = "clustering_results"
 
-N_CLUSTERS = 18  # Numero di cluster da creare
-PCA_COMPONENTS = 0.99  # Percentuale di varianza da mantenere con PCA
+N_CLUSTERS = 3  # Numero di cluster da creare
+PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
+
+SPECTRAL_CLUSTERING_GAMMA = 0.1  # Parametro gamma per lo spectral clustering
 
 if __name__ == "__main__":
     print("Caricamento delle feature audio...")
@@ -31,12 +33,12 @@ if __name__ == "__main__":
     features_norm_original = features_norm.copy()
 
     # Riduzione della dimensionalità con PCA
-    pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full')  # Mantiene quasi il 100% della varianza
+    pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full')
     features_reduced = pca.fit_transform(features_norm)
     print("Shape feature array dopo PCA:", features_reduced.shape)
 
     print(f"Esecuzione del spectral clustering con {N_CLUSTERS} cluster...")
-    labels = spectral_clustering_classifier(features=features_reduced, n_clusters=N_CLUSTERS, gamma=0.1)
+    labels = spectral_clustering_classifier(features=features_reduced, n_clusters=N_CLUSTERS, gamma=SPECTRAL_CLUSTERING_GAMMA)
 
     print("Classificazione completata!")
     visualizza_risultati(filenames, features_reduced, labels, RESULTS + "/clusters_plot.png")
