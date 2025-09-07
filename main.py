@@ -5,14 +5,15 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
 import numpy as np
 
-CSV_FEATURE_FILENAME = "audio_features.csv"
-SONGS_DIR = "songs"  # Cambia con il percorso della tua cartella di canzoni
+CSV_FEATURE_FILENAME = "dataset/audio_features.csv"
+SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
 
-N_CLUSTERS = 20  # Numero di cluster da creare
+N_CLUSTERS = 18  # Numero di cluster da creare
+PCA_COMPONENTS = 0.99  # Percentuale di varianza da mantenere con PCA
 
 if __name__ == "__main__":
     print("Caricamento delle feature audio...")
-    filenames, features = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
+    filenames, file_dirs, features = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
     print("Shape feature array:", features.shape)
 
     # Rimozione dei duplicati
@@ -25,7 +26,7 @@ if __name__ == "__main__":
     features = scaler.fit_transform(features)
 
     # Riduzione della dimensionalità con PCA
-    pca = PCA(n_components=0.99, svd_solver='full')  # Mantiene quasi il 100% della varianza
+    pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full')  # Mantiene quasi il 100% della varianza
     features = pca.fit_transform(features)
     print("Shape feature array dopo PCA:", features.shape)
 

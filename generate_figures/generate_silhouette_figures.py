@@ -55,7 +55,7 @@ from sklearn.decomposition import PCA
 RANDOM_STATE = 42
 np.random.seed(RANDOM_STATE)
 
-OUT_DIR = "../figs_silhouette"
+OUT_DIR = "../figs/figs_silhouette"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ---------------------------

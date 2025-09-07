@@ -57,7 +57,7 @@ from matplotlib.patches import Circle
 RANDOM_STATE = 42
 np.random.seed(RANDOM_STATE)
 
-OUT_DIR = "../figs_dbi"
+OUT_DIR = "../figs/figs_dbi"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------
