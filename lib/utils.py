@@ -28,18 +28,8 @@ def plot_clusters_results(filenames, features, labels, fig_name='clustering_resu
     if show_fig:
         plt.show()
 
-    # Mostra i brani in ogni cluster
-    print("\nContenuto dei cluster:")
-    for cluster_id in np.unique(labels):
-        cluster_files = [filenames[i] for i in range(len(filenames)) if labels[i] == cluster_id]
-        print(f"\nCluster {cluster_id} ({len(cluster_files)} brani):")
-        for file in cluster_files[:5]:  # Mostra solo i primi 5 per cluster
-            print(f"  - {file}")
-        if len(cluster_files) > 5:
-            print(f"  ... e altri {len(cluster_files) - 5} brani")
 
-
-def visualizza_tsne(features, labels, filenames, fig_name='clustering_results/clusters_tsne.png', show_fig=False):
+def plot_tsne_clustering(features, labels, filenames, fig_name='clustering_results/clusters_tsne.png', show_fig=False):
     # Riduzione dimensionale con t-SNE (migliore per visualizzare cluster)
     tsne = TSNE(n_components=2, random_state=42)
     features_2d = tsne.fit_transform(features)
@@ -57,20 +47,6 @@ def visualizza_tsne(features, labels, filenames, fig_name='clustering_results/cl
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
-
-
-def analizza_cluster(features, labels):
-    for cluster_id in np.unique(labels):
-        # Seleziona le feature dei brani in questo cluster
-        cluster_features = features[labels == cluster_id]
-
-        # Calcola statistiche per questo cluster
-        media = np.mean(cluster_features, axis=0)
-        std = np.std(cluster_features, axis=0)
-
-        print(f"\nCluster {cluster_id} - {len(cluster_features)} brani:")
-        print(f"  Media delle feature: {media}")
-        print(f"  Deviazione standard: {std}")
 
 
 def salva_risultati_markdown(filenames, features, labels, feature_names=None, path='clustering_results/report.md', n_repr=5, generi=None):
@@ -210,3 +186,11 @@ def salva_risultati_markdown(filenames, features, labels, feature_names=None, pa
         f.write('\n'.join(lines))
 
     return path
+
+
+def computer_clustering_scores(features, labels):
+    silhouette = silhouette_score(features, labels)
+    davies_bouldin = davies_bouldin_score(features, labels)
+    print(f"Silhouette Score: {silhouette:.3f} (più alto è migliore, max 1)")
+    print(f"Davies-Bouldin Index: {davies_bouldin:.3f} (più basso è migliore)")
+    return silhouette, davies_bouldin

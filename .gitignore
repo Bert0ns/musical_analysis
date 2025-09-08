@@ -12,5 +12,4 @@ figs/
 dataset/songs/**/
 !dataset/songs/dowload_songs.md
 
-clustering_results/report.md
-clustering_results/report_dettagliato_feature_originali.md
+clustering_results/report*

@@ -1,10 +1,10 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
-from lib.spectral_clustering import spectral_clustering_classifier, trova_brani_rappresentativi, valuta_clustering, \
+from lib.spectral_clustering import spectral_clustering_classifier, trova_brani_rappresentativi, \
     silhouette_score_analysis_spectral_clustering
 from lib.extract_data_features import get_audio_features
-from lib.utils import salva_risultati_markdown, visualizza_tsne, analizza_cluster, plot_clusters_results
+from lib.utils import salva_risultati_markdown, plot_tsne_clustering, plot_clusters_results, computer_clustering_scores
 
 CSV_FEATURE_FILENAME = "dataset/audio_features.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
@@ -41,21 +41,23 @@ if __name__ == "__main__":
     print(f"Esecuzione del spectral clustering con {N_CLUSTERS} cluster...")
     spectral_clustering_labels = spectral_clustering_classifier(features=features_reduced, n_clusters=N_CLUSTERS, gamma=SPECTRAL_CLUSTERING_GAMMA)
 
-    print("Classificazione completata!")
+    print("Spectral clustering classification completed!")
     plot_clusters_results(filenames, features_reduced, spectral_clustering_labels, RESULTS + "/clusters_plot.png")
 
     print("Analisi dei cluster...")
-    analizza_cluster(features_reduced, spectral_clustering_labels)
     trova_brani_rappresentativi(features_reduced, spectral_clustering_labels, filenames)
-    visualizza_tsne(features_reduced, spectral_clustering_labels, filenames, RESULTS + "/tsne_clusters_plot.png")
+    plot_tsne_clustering(features_reduced, spectral_clustering_labels, filenames, RESULTS + "/tsne_clusters_plot.png")
+    computer_clustering_scores(features_reduced, spectral_clustering_labels)
 
-    valuta_clustering(features_reduced, spectral_clustering_labels)
-    silhouette_score_analysis_spectral_clustering(features_reduced, gamma=SPECTRAL_CLUSTERING_GAMMA, range_k=(2, 20), fig_name=RESULTS + "/silhouette_analysis_spectral_clustering.png")
-
-    print("Generazione report Markdown...")
+    print("Generazione report Markdown spectral clustering...")
     # Report principale (sulle feature ridotte usate per il clustering)
-    report_path = salva_risultati_markdown(filenames, features_reduced, spectral_clustering_labels, feature_names=None, path=RESULTS + "/report.md", n_repr=5, generi=music_genres)
+    report_path = salva_risultati_markdown(filenames, features_reduced, spectral_clustering_labels, feature_names=None, path=RESULTS + "/report_SC.md", n_repr=5, generi=music_genres)
     # Report opzionale con statistiche sulle feature originali normalizzate (senza PCA) usando i nomi
-    report_detailed_path = salva_risultati_markdown(filenames, features_norm_original, spectral_clustering_labels, feature_names=features_names, path=RESULTS + "/report_dettagliato_feature_originali.md", n_repr=5, generi=music_genres)
+    report_detailed_path = salva_risultati_markdown(filenames, features_norm_original, spectral_clustering_labels, feature_names=features_names, path=RESULTS + "/report_dettagliato_feature_originali_SC.md", n_repr=5, generi=music_genres)
     print(f"Report generato: {report_path}")
     print(f"Report dettagliato generato: {report_detailed_path}")
+
+    # Analisi del silhouette score per diversi numeri di cluster, spectral clustering
+    silhouette_score_analysis_spectral_clustering(features_reduced, gamma=SPECTRAL_CLUSTERING_GAMMA, range_k=(2, 20),
+                                                  fig_name=RESULTS + "/silhouette_analysis_spectral_clustering.png")
+

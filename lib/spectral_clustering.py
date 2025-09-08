@@ -49,12 +49,6 @@ def trova_brani_rappresentativi(features, labels, filenames, n=3):
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
-def valuta_clustering(features, labels):
-    silhouette = silhouette_score(features, labels)
-    davies_bouldin = davies_bouldin_score(features, labels)
-    print(f"Silhouette Score: {silhouette:.3f} (più alto è migliore, max 1)")
-    print(f"Davies-Bouldin Index: {davies_bouldin:.3f} (più basso è migliore)")
-
 
 def silhouette_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 20), fig_name='clustering_results/silhouette_analysis_spectral_clustering.png', show_fig=False):
     """Esegue un'analisi dello silhouette score per diversi numeri di cluster
