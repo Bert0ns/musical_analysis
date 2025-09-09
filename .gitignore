@@ -12,4 +12,6 @@ figs/
 dataset/songs/**/
 !dataset/songs/dowload_songs.md
 
-clustering_results/report*
+clustering_results/dbscan/report*
+clustering_results/kmeans/report*
+clustering_results/spectral_clustering/report*

@@ -3,6 +3,7 @@ librosa
 scikit-learn
 matplotlib
 scipy
+resampy
 
 seaborn
 spotdl

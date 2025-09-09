@@ -239,7 +239,7 @@ def extract_features_from_directory(directory, extensions=None):
                 file_path = os.path.join(dirpath, filename)
                 # Nome della sottocartella che contiene il file (o __root__ per la radice)
                 if os.path.abspath(dirpath) == os.path.abspath(directory):
-                    subfolder = "__root__"
+                    subfolder = dirpath.split("/")[-1]
                 else:
                     subfolder = os.path.basename(dirpath)
                 candidates.append((filename, file_path, subfolder))
@@ -300,7 +300,7 @@ def read_features_from_csv(csv_filename):
     filenames = []
     feature_list = []
     file_dirs = []
-    with open(csv_filename, "r", newline="") as f:
+    with open(csv_filename, "r", encoding='utf-8', newline="") as f:
         reader = csv.reader(f)
         header = next(reader)  # skip header
         for row in reader:
