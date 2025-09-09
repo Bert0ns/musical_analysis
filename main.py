@@ -18,8 +18,8 @@ from lib.dbscan_clustering import (
     k_distance_plot_dbscan,
 )
 
-CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_trap.csv"
-SONGS_DIR = "dataset/songs/trap/"  # Cambia con il percorso della tua cartella di canzoni
+CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
+SONGS_DIR = "dataset/songs/trap"  # Cambia con il percorso della tua cartella di canzoni
 
 RESULTS_SC = "clustering_results/spectral_clustering"
 RESULTS_KM = "clustering_results/kmeans"
