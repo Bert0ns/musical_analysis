@@ -27,8 +27,7 @@ DBSCAN_METRIC = 'euclidean'
 # ===================== PARAM GRID (valori esempio, modifica liberamente) =====================
 import os
 import csv
-import itertools
-from lib.utils import computer_clustering_scores
+from lib.utils import computer_clustering_scores, _param_product, _fmt_float
 
 SPECTRAL_PARAM_GRID = {
     'n_clusters': [3, 5, 7],
@@ -44,17 +43,6 @@ DBSCAN_PARAM_GRID = {
     'min_samples': [5, 8, 12],
     'metric': ['euclidean'],
 }
-
-
-def _fmt_float(v: float) -> str:
-    s = f"{v}"
-    return s.replace('.', 'p')
-
-
-def _param_product(grid: dict):
-    keys = list(grid.keys())
-    for values in itertools.product(*[grid[k] for k in keys]):
-        yield dict(zip(keys, values))
 
 
 def grid_search_spectral(
