@@ -1,8 +1,12 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
 from sklearn.neighbors import NearestNeighbors
+
+from lib.utils import salva_risultati_markdown, computer_clustering_scores, plot_tsne_clustering, plot_clusters_results
 
 
 def dbscan_clustering_classifier(features, eps=0.5, min_samples=5, metric='euclidean'):
@@ -102,10 +106,95 @@ def k_distance_plot_dbscan(features, k=5, fig_name='clustering_results/k_distanc
     return k_dist
 
 
+def run_dbscan_clustering_pipeline(
+        filenames,
+        features_reduced,
+        features_norm_original,
+        features_names,
+        music_genres,
+        results_dir: str,
+        eps: float,
+        min_samples: int,
+        metric: str,
+):
+    """Esegue l'intera pipeline di DBSCAN e salva grafici/report.
+
+    Ritorna: (labels, modello)
+    """
+    os.makedirs(results_dir, exist_ok=True)
+
+    print("\nAnalisi esplorativa per DBSCAN (k-distance plot)...")
+    try:
+        k_distance_plot_dbscan(features_reduced, k=min_samples, fig_name=results_dir + "/k_distance_dbscan.png")
+    except Exception as e:
+        print(f"Errore k-distance plot DBSCAN: {e}")
+
+    print("Analisi silhouette su diversi eps per DBSCAN...")
+    eps_values = np.linspace(0.1, 2.0, 25)
+    try:
+        silhouette_analysis_dbscan(
+            features_reduced,
+            eps_values,
+            min_samples=min_samples,
+            metric=metric,
+            fig_name=results_dir + "/silhouette_analysis_dbscan.png",
+        )
+    except Exception as e:
+        print(f"Errore silhouette analysis DBSCAN: {e}")
+
+    print(f"Esecuzione DBSCAN finale (eps={eps}, min_samples={min_samples})...")
+    dbscan_labels, dbscan_model = dbscan_clustering_classifier(features_reduced, eps=eps, min_samples=min_samples, metric=metric)
+    unique_dbscan_clusters = [c for c in np.unique(dbscan_labels) if c != -1]
+    print(f"Cluster trovati (senza noise): {len(unique_dbscan_clusters)} - con noise label -1 totale classi: {len(np.unique(dbscan_labels))}")
+    noise_ratio = np.sum(dbscan_labels == -1) / len(dbscan_labels)
+    print(f"Percentuale noise: {noise_ratio * 100:.1f}%")
+
+    plot_clusters_results(filenames, features_reduced, dbscan_labels, results_dir + "/clusters_plot_dbscan.png")
+    plot_tsne_clustering(features_reduced, dbscan_labels, filenames, results_dir + "/tsne_clusters_plot_dbscan.png")
+
+    trova_brani_rappresentativi_dbscan(features_reduced, dbscan_labels, filenames, n=5)
+
+    # Metriche (silhouette e Davies-Bouldin) evitando di calcolare se cluster insufficienti
+    try:
+        if len(unique_dbscan_clusters) >= 2:
+            # Usiamo solo punti non-noise per silhouette e DB
+            valid_mask = dbscan_labels != -1
+            computer_clustering_scores(features_reduced[valid_mask], dbscan_labels[valid_mask])
+        else:
+            print("Metriche DBSCAN saltate: meno di 2 cluster validi.")
+    except Exception as e:
+        print(f"Errore calcolo metriche DBSCAN: {e}")
+
+    print("Generazione report Markdown DBSCAN...")
+    report_dbscan = salva_risultati_markdown(
+        filenames,
+        features_reduced,
+        dbscan_labels,
+        feature_names=None,
+        path=results_dir + "/report_DBSCAN.md",
+        n_repr=5,
+        generi=music_genres,
+    )
+    report_dbscan_detailed = salva_risultati_markdown(
+        filenames,
+        features_norm_original,
+        dbscan_labels,
+        feature_names=features_names,
+        path=results_dir + "/report_dettagliato_feature_originali_DBSCAN.md",
+        n_repr=5,
+        generi=music_genres,
+    )
+    print(f"Report DBSCAN generato: {report_dbscan}")
+    print(f"Report dettagliato DBSCAN generato: {report_dbscan_detailed}")
+
+    return dbscan_labels, dbscan_model
+
+
 __all__ = [
     'dbscan_clustering_classifier',
     'trova_brani_rappresentativi_dbscan',
     'silhouette_analysis_dbscan',
-    'k_distance_plot_dbscan'
+    'k_distance_plot_dbscan',
+    'run_dbscan_clustering_pipeline',
 ]
 

@@ -7,7 +7,6 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 
-from lib.spectral_clustering import distribuzione_generi_per_cluster
 
 def plot_clusters_results(filenames, features, labels, fig_name='clustering_results/clusters.png', show_fig=False):
     """
@@ -194,3 +193,44 @@ def computer_clustering_scores(features, labels):
     print(f"Silhouette Score: {silhouette:.3f} (più alto è migliore, max 1)")
     print(f"Davies-Bouldin Index: {davies_bouldin:.3f} (più basso è migliore)")
     return silhouette, davies_bouldin
+
+
+def distribuzione_generi_per_cluster(labels, generi):
+    """Calcola la distribuzione dei generi (sottocartelle) all'interno di ogni cluster.
+
+    Ritorna:
+        dict: {cluster_id: {genere: {'count': n, 'perc_cluster': p_cluster, 'perc_genere_in_tot': p_genere_su_tot_genere}}}
+        dove:
+          - 'perc_cluster' è la percentuale del genere sul totale del cluster
+          - 'perc_genere_in_tot' è la percentuale dei brani di quel genere assegnati a quel cluster rispetto a tutti i brani di quel genere
+    """
+    if len(labels) != len(generi):
+        raise ValueError("labels e generi devono avere stessa lunghezza")
+
+    labels = np.asarray(labels)
+    generi = np.asarray(generi)
+
+    distribuzione = {}
+    # Conteggio globale per genere
+    conteggio_genere_tot = {}
+    for g in generi:
+        conteggio_genere_tot[g] = conteggio_genere_tot.get(g, 0) + 1
+
+    for cid in np.unique(labels):
+        idx_cluster = np.where(labels == cid)[0]
+        generi_cluster = generi[idx_cluster]
+        totale_cluster = len(idx_cluster)
+        distribuzione[cid] = {}
+        # Conteggi nel cluster
+        conteggio_locale = {}
+        for g in generi_cluster:
+            conteggio_locale[g] = conteggio_locale.get(g, 0) + 1
+        for g, c in sorted(conteggio_locale.items(), key=lambda x: (-x[1], x[0].lower())):
+            perc_cluster = c / totale_cluster * 100 if totale_cluster else 0.0
+            perc_genere_in_tot = c / conteggio_genere_tot[g] * 100 if conteggio_genere_tot[g] else 0.0
+            distribuzione[cid][g] = {
+                'count': c,
+                'perc_cluster': perc_cluster,
+                'perc_genere_in_tot': perc_genere_in_tot,
+            }
+    return distribuzione, conteggio_genere_tot

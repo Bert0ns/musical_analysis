@@ -1,7 +1,11 @@
+import os
+
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
+
+from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clustering_scores, salva_risultati_markdown
 
 
 def kmeans_clustering_classifier(features, n_clusters=5, n_init='auto', random_state=42, max_iter=300):
@@ -108,9 +112,74 @@ def elbow_method_kmeans(features, range_k=(2, 20), fig_name='clustering_results/
     return risultati
 
 
+def run_kmeans_clustering_pipeline(
+        filenames,
+        features_reduced,
+        features_norm_original,
+        features_names,
+        music_genres,
+        results_dir: str,
+        n_clusters: int,
+):
+    """Esegue l'intera pipeline di K-Means e salva grafici/report.
+
+    Ritorna: (labels, centri)
+    """
+    os.makedirs(results_dir, exist_ok=True)
+
+    print(f"\nEsecuzione del K-Means clustering con {n_clusters} cluster...")
+    kmeans_labels, kmeans_centers = kmeans_clustering_classifier(features_reduced, n_clusters=n_clusters)
+    print("K-Means clustering completed!")
+
+    plot_clusters_results(filenames, features_reduced, kmeans_labels, results_dir + "/clusters_plot_kmeans.png")
+    plot_tsne_clustering(features_reduced, kmeans_labels, filenames, results_dir + "/tsne_clusters_plot_kmeans.png")
+
+    print("Analisi dei cluster (K-Means)...")
+    trova_brani_rappresentativi_kmeans(features_reduced, kmeans_labels, filenames, n=5, centers=kmeans_centers)
+    computer_clustering_scores(features_reduced, kmeans_labels)
+
+    print("Generazione report Markdown K-Means...")
+    report_km = salva_risultati_markdown(
+        filenames,
+        features_reduced,
+        kmeans_labels,
+        feature_names=None,
+        path=results_dir + "/report_KM.md",
+        n_repr=5,
+        generi=music_genres,
+    )
+    report_km_detailed = salva_risultati_markdown(
+        filenames,
+        features_norm_original,
+        kmeans_labels,
+        feature_names=features_names,
+        path=results_dir + "/report_dettagliato_feature_originali_KM.md",
+        n_repr=5,
+        generi=music_genres,
+    )
+    print(f"Report K-Means generato: {report_km}")
+    print(f"Report dettagliato K-Means generato: {report_km_detailed}")
+
+    # Analisi silhouette K-Means
+    silhouette_score_analysis_kmeans(
+        features_reduced,
+        range_k=(2, 20),
+        fig_name=results_dir + "/silhouette_analysis_kmeans.png",
+    )
+    # Elbow method K-Means
+    elbow_method_kmeans(
+        features_reduced,
+        range_k=(2, 20),
+        fig_name=results_dir + "/elbow_analysis_kmeans.png",
+    )
+
+    return kmeans_labels, kmeans_centers
+
+
 __all__ = [
     'kmeans_clustering_classifier',
     'trova_brani_rappresentativi_kmeans',
     'silhouette_score_analysis_kmeans',
-    'elbow_method_kmeans'
+    'elbow_method_kmeans',
+    'run_kmeans_clustering_pipeline'
 ]

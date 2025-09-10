@@ -1,8 +1,12 @@
+import os
+
 import numpy as np
 from sklearn.cluster import SpectralClustering
-from sklearn.metrics import silhouette_score, davies_bouldin_score
+from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import rbf_kernel
 import matplotlib.pyplot as plt
+
+from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clustering_scores, salva_risultati_markdown
 
 
 def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
@@ -84,44 +88,61 @@ def silhouette_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(
     return risultati
 
 
-def distribuzione_generi_per_cluster(labels, generi):
-    """Calcola la distribuzione dei generi (sottocartelle) all'interno di ogni cluster.
+def run_spectral_clustering_pipeline(
+        filenames,
+        features_reduced,
+        features_norm_original,
+        features_names,
+        music_genres,
+        results_dir: str,
+        n_clusters: int,
+        gamma: float,
+):
+    """Esegue l'intera pipeline di spectral clustering e salva grafici/report.
 
-    Ritorna:
-        dict: {cluster_id: {genere: {'count': n, 'perc_cluster': p_cluster, 'perc_genere_in_tot': p_genere_su_tot_genere}}}
-        dove:
-          - 'perc_cluster' è la percentuale del genere sul totale del cluster
-          - 'perc_genere_in_tot' è la percentuale dei brani di quel genere assegnati a quel cluster rispetto a tutti i brani di quel genere
+    Ritorna: labels prodotti dallo spectral clustering.
     """
-    if len(labels) != len(generi):
-        raise ValueError("labels e generi devono avere stessa lunghezza")
+    os.makedirs(results_dir, exist_ok=True)
 
-    labels = np.asarray(labels)
-    generi = np.asarray(generi)
+    print(f"Esecuzione del spectral clustering con {n_clusters} cluster...")
+    spectral_clustering_labels = spectral_clustering_classifier(features=features_reduced, n_clusters=n_clusters, gamma=gamma)
 
-    distribuzione = {}
-    # Conteggio globale per genere
-    conteggio_genere_tot = {}
-    for g in generi:
-        conteggio_genere_tot[g] = conteggio_genere_tot.get(g, 0) + 1
+    print("Spectral clustering classification completed!")
+    plot_clusters_results(filenames, features_reduced, spectral_clustering_labels, results_dir + "/clusters_plot.png")
 
-    for cid in np.unique(labels):
-        idx_cluster = np.where(labels == cid)[0]
-        generi_cluster = generi[idx_cluster]
-        totale_cluster = len(idx_cluster)
-        distribuzione[cid] = {}
-        # Conteggi nel cluster
-        conteggio_locale = {}
-        for g in generi_cluster:
-            conteggio_locale[g] = conteggio_locale.get(g, 0) + 1
-        for g, c in sorted(conteggio_locale.items(), key=lambda x: (-x[1], x[0].lower())):
-            perc_cluster = c / totale_cluster * 100 if totale_cluster else 0.0
-            perc_genere_in_tot = c / conteggio_genere_tot[g] * 100 if conteggio_genere_tot[g] else 0.0
-            distribuzione[cid][g] = {
-                'count': c,
-                'perc_cluster': perc_cluster,
-                'perc_genere_in_tot': perc_genere_in_tot,
-            }
-    return distribuzione, conteggio_genere_tot
+    print("Analisi dei cluster (Spectral)...")
+    trova_brani_rappresentativi(features_reduced, spectral_clustering_labels, filenames)
+    plot_tsne_clustering(features_reduced, spectral_clustering_labels, filenames, results_dir + "/tsne_clusters_plot.png")
+    computer_clustering_scores(features_reduced, spectral_clustering_labels)
 
+    print("Generazione report Markdown spectral clustering...")
+    report_path = salva_risultati_markdown(
+        filenames,
+        features_reduced,
+        spectral_clustering_labels,
+        feature_names=None,
+        path=results_dir + "/report_SC.md",
+        n_repr=5,
+        generi=music_genres,
+    )
+    report_detailed_path = salva_risultati_markdown(
+        filenames,
+        features_norm_original,
+        spectral_clustering_labels,
+        feature_names=features_names,
+        path=results_dir + "/report_dettagliato_feature_originali_SC.md",
+        n_repr=5,
+        generi=music_genres,
+    )
+    print(f"Report generato: {report_path}")
+    print(f"Report dettagliato generato: {report_detailed_path}")
 
+    # Analisi del silhouette score per diversi numeri di cluster
+    silhouette_score_analysis_spectral_clustering(
+        features_reduced,
+        gamma=gamma,
+        range_k=(2, 20),
+        fig_name=results_dir + "/silhouette_analysis_spectral_clustering.png",
+    )
+
+    return spectral_clustering_labels
