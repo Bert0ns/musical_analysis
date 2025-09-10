@@ -39,10 +39,23 @@ KMEANS_PARAM_GRID = {
 }
 
 DBSCAN_PARAM_GRID = {
-    'eps': [0.3, 0.5, 0.7, 1.0],
+    'eps': [0.032, 0.034, 0.038],
     'min_samples': [5, 8, 12],
-    'metric': ['euclidean'],
+    'metric': ['euclidean', 'cosine'],
 }
+
+
+# --- Helper: scegli lo spazio per DBSCAN
+def _choose_dbscan_space(features_reduced: np.ndarray, features_norm: np.ndarray, mode: str) -> np.ndarray:
+    if mode == 'normalized':
+        # Usa le feature normalizzate pre-PCA
+        return features_norm
+    elif mode == 'reduced_minmax':
+        # Riapplica MinMax alle componenti PCA
+        return MinMaxScaler().fit_transform(features_reduced)
+    else:  # 'reduced'
+        # Usa direttamente le componenti PCA
+        return features_reduced
 
 
 def grid_search_spectral(
@@ -166,6 +179,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Clustering musicale - esecuzione singola o grid search parametri")
     parser.add_argument('--mode', choices=['single', 'grid'], default='single', help='single: esegue una volta con i parametri di default; grid: testa combinazioni di parametri')
     parser.add_argument('--which', nargs='*', choices=['spectral', 'kmeans', 'dbscan'], help='Se in modalità grid, limita agli algoritmi indicati')
+    parser.add_argument(
+        '--dbscan-space',
+        choices=['reduced', 'reduced_minmax', 'normalized'],
+        default='reduced_minmax',
+        help='Spazio feature usato da DBSCAN'
+    )
     args = parser.parse_args()
 
     print("Caricamento delle feature audio...")
@@ -217,7 +236,7 @@ if __name__ == "__main__":
         # ============================= DBSCAN CLUSTERING =============================
         dbscan_labels, dbscan_model = run_dbscan_clustering_pipeline(
             filenames,
-            features_reduced,
+            _choose_dbscan_space(features_reduced, features_norm_original, args.dbscan_space),
             features_norm_original,
             features_names,
             music_genres,
@@ -256,7 +275,7 @@ if __name__ == "__main__":
             print("\n[GRID] Avvio grid search per DBSCAN...")
             grid_search_dbscan(
                 filenames,
-                features_reduced,
+                _choose_dbscan_space(features_reduced, features_norm_original, args.dbscan_space),
                 features_norm_original,
                 features_names,
                 music_genres,
