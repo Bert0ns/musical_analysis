@@ -7,3 +7,6 @@ resampy
 
 seaborn
 spotdl
+
+tables
+tqdm
