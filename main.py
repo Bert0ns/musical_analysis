@@ -6,6 +6,7 @@ from lib.extract_data_features import get_audio_features
 from lib.dbscan_clustering import run_dbscan_clustering_pipeline
 from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
+from lib.extract_msd_h5_features import get_msd_h5_features
 
 CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
 SONGS_DIR = "dataset/songs/trap"  # Cambia con il percorso della tua cartella di canzoni
@@ -185,10 +186,36 @@ if __name__ == "__main__":
         default='reduced_minmax',
         help='Spazio feature usato da DBSCAN'
     )
+    # NUOVI ARGOMENTI per usare le feature del Million Song Dataset
+    parser.add_argument('--feature-source', choices=['audio', 'msd'], default='audio', help='Origine delle feature: audio locale (librosa) oppure msd (file .h5)')
+    parser.add_argument('--msd-root', type=str, default=None, help='Cartella radice dei file .h5 MSD')
+    parser.add_argument('--msd-csv', type=str, default='dataset/songs_features/msd_h5_features.csv', help='CSV cache per feature MSD')
+    parser.add_argument('--msd-titles-file', type=str, default=None, help='File mapping track_id<SEP>song_id<SEP>artist_name<SEP>song_title')
+    parser.add_argument('--msd-max-files', type=int, default=None, help='Limita numero di file .h5 (debug)')
     args = parser.parse_args()
 
-    print("Caricamento delle feature audio...")
-    filenames, music_genres, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
+    # ================= CARICAMENTO FEATURE =================
+    if args.feature_source == 'audio':
+        print("Caricamento delle feature audio (estrazione locale/librosa)...")
+        filenames, music_genres, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
+        source_label = 'audio'
+    else:
+        if get_msd_h5_features is None:
+            raise RuntimeError("Modulo extract_msd_h5_features non disponibile")
+        if not args.msd_root:
+            raise ValueError("--msd-root è obbligatorio quando --feature-source msd")
+        print("Caricamento / estrazione feature MSD (.h5)...")
+        filenames, artist_names, features, features_names = get_msd_h5_features(
+            args.msd_root,
+            args.msd_csv,
+            max_files=args.msd_max_files,
+            verbose=False,
+            titles_file=args.msd_titles_file,
+        )
+        # Riutilizziamo lo slot music_genres per compatibilità pipeline (report) usando l'artista
+        music_genres = [a if a else 'UNKNOWN' for a in artist_names]
+        source_label = 'msd'
+    print(f"Origine feature: {source_label}")
     print("Shape feature array:", features.shape)
 
     # Rimozione dei duplicati

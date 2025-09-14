@@ -175,7 +175,6 @@ def extract_song_features(h5, songidx: int) -> Tuple[Dict[str, Any], List[str]]:
 
 
 def extract_features_from_h5_file(h5_path: str, verbose: bool=False) -> Tuple[List[str], np.ndarray, List[str]]:
-    import tables
     rows_features = []
     track_ids = []
     feature_names_master: List[str] | None = None
@@ -294,36 +293,49 @@ def save_msd_features_csv(id_or_titles: List[str], feature_array: np.ndarray, fe
 
 
 def get_msd_h5_features(root_dir: str, csv_output: str, max_files: int | None = None, verbose: bool=False, titles_file: str | None = None):
-    # Se esiste già il CSV lo ricarichiamo (accetta header track_id o song_title / song_title+artist_name)
+    """Estrae (o carica) feature dal Million Song Dataset.
+
+    Ritorna tuple compatibile con get_audio_features:
+        (filenames_or_titles, artist_names_list, feature_array, feature_names)
+    Dove artist_names_list può essere una lista di stringhe vuote se non disponibile.
+    """
+    # Se esiste già il CSV lo ricarichiamo (accetta header track_id oppure song_title+artist_name)
     if os.path.exists(csv_output):
         with open(csv_output, 'r', encoding='utf-8') as f:
             r = csv.reader(f)
-            header = next(r)
-            # Determina offset feature
-            if len(header) >= 2 and header[0] == 'song_title' and header[1] == 'artist_name':
+            try:
+                header = next(r)
+            except StopIteration:
+                raise ValueError(f"CSV vuoto: {csv_output}")
+            if not header:
+                raise ValueError(f"Header CSV non valido: {csv_output}")
+            # Caso: song_title + artist_name + features
+            if len(header) >= 3 and header[0] == 'song_title' and header[1] == 'artist_name':
                 feature_names = header[2:]
-                id_or_titles = []
-                artist_dummy = []  # ignorato in ritorno
-                rows = []
+                titles: List[str] = []
+                artists: List[str] = []
+                rows: List[List[float]] = []
                 for line in r:
                     if not line:
                         continue
-                    id_or_titles.append(line[0])
-                    artist_dummy.append(line[1])
+                    titles.append(line[0])
+                    artists.append(line[1])
                     rows.append([float(x) for x in line[2:]])
-                return id_or_titles, np.asarray(rows, dtype=float), feature_names
+                return titles, artists, np.asarray(rows, dtype=float), feature_names
+            # Caso: track_id + features (nessun artista)
             else:
                 feature_names = header[1:]
-                id_or_titles = []
-                rows = []
+                ids: List[str] = []
+                rows: List[List[float]] = []
                 for line in r:
                     if not line:
                         continue
-                    id_or_titles.append(line[0])
+                    ids.append(line[0])
                     rows.append([float(x) for x in line[1:]])
-                return id_or_titles, np.asarray(rows, dtype=float), feature_names
+                empty_artists = [''] * len(ids)
+                return ids, empty_artists, np.asarray(rows, dtype=float), feature_names
 
-    # Estrazione
+    # Estrazione ex-novo
     track_ids, feats, names = extract_msd_features(root_dir, max_files=max_files, verbose=verbose)
 
     # Mapping metadati se fornito
@@ -336,10 +348,11 @@ def get_msd_h5_features(root_dir: str, csv_output: str, max_files: int | None = 
             song_titles.append(song_title)
             artist_names.append(artist_name)
         save_msd_features_csv(song_titles, feats, names, csv_output, header_label='song_title', artist_values=artist_names)
-        return song_titles, feats, names
+        return song_titles, artist_names, feats, names
     else:
         save_msd_features_csv(track_ids, feats, names, csv_output, header_label='track_id')
-        return track_ids, feats, names
+        artist_dummy = [''] * len(track_ids)
+        return track_ids, artist_dummy, feats, names
 
 
 if __name__ == '__main__':
@@ -353,5 +366,5 @@ if __name__ == '__main__':
     p.add_argument('--titles-file', type=str, default=None, help='File testo mapping track_id<SEP>song_id<SEP>artist_name<SEP>song_title')
     args = p.parse_args()
     print('Avvio estrazione feature MSD...', flush=True)
-    ids_or_titles, feats, names = get_msd_h5_features(args.root_dir, args.output_csv, max_files=args.max_files, verbose=args.verbose, titles_file=args.titles_file)
-    print(f'Creato {args.output_csv} con {len(ids_or_titles)} tracce e {len(names)} feature.')
+    titles_or_ids, artists, feats, names = get_msd_h5_features(args.root_dir, args.output_csv, max_files=args.max_files, verbose=args.verbose, titles_file=args.titles_file)
+    print(f'Creato {args.output_csv} con {len(titles_or_ids)} tracce e {len(names)} feature. Artisti mappati: {sum(1 for a in artists if a)}')
