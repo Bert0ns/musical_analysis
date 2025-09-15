@@ -200,10 +200,9 @@ if __name__ == "__main__":
         filenames, music_genres, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
         source_label = 'audio'
     else:
-        if get_msd_h5_features is None:
-            raise RuntimeError("Modulo extract_msd_h5_features non disponibile")
-        if not args.msd_root:
-            raise ValueError("--msd-root è obbligatorio quando --feature-source msd")
+        if args.msd_root is None and args.msd_csv is None:
+            raise ValueError("Per usare le feature MSD, specificare --msd-root e/o --msd-csv")
+
         print("Caricamento / estrazione feature MSD (.h5)...")
         filenames, artist_names, features, features_names = get_msd_h5_features(
             args.msd_root,

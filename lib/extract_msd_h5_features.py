@@ -292,15 +292,18 @@ def save_msd_features_csv(id_or_titles: List[str], feature_array: np.ndarray, fe
                 w.writerow([ident] + [f'{v:.10g}' for v in row])
 
 
-def get_msd_h5_features(root_dir: str, csv_output: str, max_files: int | None = None, verbose: bool=False, titles_file: str | None = None):
+def get_msd_h5_features(root_dir: str | None, csv_output: str | None, max_files: int | None = None, verbose: bool=False, titles_file: str | None = None):
     """Estrae (o carica) feature dal Million Song Dataset.
 
     Ritorna tuple compatibile con get_audio_features:
         (filenames_or_titles, artist_names_list, feature_array, feature_names)
     Dove artist_names_list può essere una lista di stringhe vuote se non disponibile.
     """
+    if root_dir is None and csv_output is None:
+        raise ValueError('Deve essere fornita almeno una delle due opzioni: root_dir oppure csv_output')
+
     # Se esiste già il CSV lo ricarichiamo (accetta header track_id oppure song_title+artist_name)
-    if os.path.exists(csv_output):
+    if csv_output is not None and os.path.exists(csv_output):
         with open(csv_output, 'r', encoding='utf-8') as f:
             r = csv.reader(f)
             try:
