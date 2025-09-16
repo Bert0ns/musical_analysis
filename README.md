@@ -1,141 +1,147 @@
-# Musical Analysis – Clustering non supervisionato di brani musicali
+# Musical Analysis – Unsupervised clustering of music tracks
 
-Questo progetto estrae feature audio da file locali (librosa) oppure da file HDF5 del Million Song Dataset (MSD), riduce la dimensionalità con PCA e applica più algoritmi di clustering (Spectral Clustering, K‑Means, DBSCAN). Supporta grid search degli iper‑parametri, caching delle feature e generazione di report/plot.
+This project extracts audio features from local files (via librosa) or from HDF5 files in the Million Song Dataset (MSD), reduces dimensionality with PCA, and applies multiple clustering algorithms (Spectral Clustering, K‑Means, DBSCAN). It supports parameter grid search, feature caching, and produces reports/plots.
 
-## Caratteristiche Principali
-- Pipeline end‑to‑end: caricamento feature, normalizzazione, PCA, clustering, metriche, report e figure.
-- Sorgenti feature multiple:
-  - `audio`: estrazione diretta via librosa da file audio locali.
-  - `msd`: lettura/estrazione da file `.h5` del Million Song Dataset (subset o intero), con caching CSV.
-- Algoritmi: Spectral Clustering, K‑Means, DBSCAN.
-- Grid search con salvataggio riassunti (`grid_summary.csv`).
-- Figure: scatter plot PCA/t‑SNE, k‑distance DBSCAN, ecc.
-- Metriche: Silhouette, Davies–Bouldin (e variante non‑noise per DBSCAN).
-- Mapping opzionale `track_id → (song_title, artist_name)` per sostituire l’id tecnico nei CSV.
+## Highlights
+- End‑to‑end pipeline: feature loading, normalization, PCA, clustering, metrics, reports, and figures.
+- Multiple feature sources:
+  - audio: direct extraction with librosa from local audio files.
+  - msd: read/extract from MSD .h5 files (subset or full) with CSV caching.
+- Algorithms: Spectral Clustering, K‑Means, DBSCAN.
+- Grid search with CSV summaries (grid_summary.csv).
+- Figures: PCA/t‑SNE scatter plots, DBSCAN k‑distance, etc.
+- Metrics: Silhouette, Davies–Bouldin (DBSCAN also reports non‑noise metrics).
+- Optional mapping track_id → (song_title, artist_name) to improve readability in outputs.
 
-## Struttura del Progetto
-- `main.py` – Entry point CLI (singola esecuzione o grid search, audio o MSD).
-- `lib/` – Pipeline e utilità:
-  - `extract_data_features.py` – feature da audio locale.
-  - `extract_msd_h5_features.py` – feature da file `.h5` MSD + mapping titoli.
-  - `spectral_clustering.py`, `k_means_clustering.py`, `dbscan_clustering.py` – algoritmi e report.
-  - `utils.py` – funzioni di supporto (metriche, plotting, combinazioni parametri, ecc.).
-- `dataset/` – Dati e CSV di feature (sia audio sia MSD).
-- `clustering_results/` – Output per run (plot + markdown + summary grid).
-- `generate_figures/` – Script opzionali per generare figure comparative.
+## Project structure
+- main.py – CLI entry point (single run or grid search, audio or MSD).
+- lib/ – Pipelines and utilities:
+  - extract_data_features.py – feature extraction from local audio.
+  - extract_msd_h5_features.py – feature extraction from MSD .h5 + titles mapping.
+  - spectral_clustering.py, k_means_clustering.py, dbscan_clustering.py – algorithms and reports.
+  - utils.py – helper functions (metrics, plotting, parameter combinations, etc.).
+- dataset/ – Data and cached feature CSVs (audio and MSD).
+- clustering_results/ – Outputs per run (plots + markdown + grid summaries).
+- generate_figures/ – Optional scripts for comparative figures.
 
-## Requisiti
-- Python 3.9+ (testato con CPython 3.12)
-- Dipendenze in `requirements.txt`
-- (Optional) The million song dataset (subset): http://millionsongdataset.com/pages/getting-dataset/
-- (Optional) File mapping titoli: http://millionsongdataset.com/sites/default/files/AdditionalFiles/unique_tracks.txt
+## Requirements
+- Python 3.9+ (tested with CPython 3.12)
+- Dependencies listed in requirements.txt
+- Optional: Million Song Dataset (subset) http://millionsongdataset.com/pages/getting-dataset/
+- Optional: Tracks mapping file http://millionsongdataset.com/sites/default/files/AdditionalFiles/unique_tracks.txt
 
-Installazione:
+Install:
 ```bash
 python -m pip install -r requirements.txt
 ```
-Su Windows, per eventuale uso di `spotdl`, installare anche FFmpeg nel PATH.
+On Windows, if you use spotdl, also install FFmpeg in PATH.
 
-## Origini delle Feature
-### 1. Audio locale (`--feature-source audio`)
-- Metti i file sotto `dataset/songs/<genere>/` (es: `dataset/songs/trap/`).
-- Specifica/aggiorna `CSV_FEATURE_FILENAME` in `main.py` se vuoi riusare un CSV pre‑calcolato.
+## Feature sources
+### 1) Local audio (--feature-source audio)
+- Place files under dataset/songs/<genre>/ (e.g., dataset/songs/trap/).
+- Update CSV_FEATURE_FILENAME in main.py if you want to reuse a pre‑computed CSV.
 
-### 2. Million Song Dataset (`--feature-source msd`)
-- Scarica/estrai il subset MSD (cartella radice con albero di sottocartelle `.h5`).
-- Il sistema genera (o riusa) un CSV cache con le feature (argomento `--msd-csv`). Se il file esiste, viene riutilizzato per evitare ricalcolo.
-- Opzionale: file mapping per sostituire `track_id` con titolo e aggiungere l’artista.
+### 2) Million Song Dataset (--feature-source msd)
+- Download/extract the MSD subset (root folder with nested .h5 files).
+- The system generates (or reuses) a CSV cache via --msd-csv. If the file exists, it is reused to avoid re‑extraction.
+- Optional: mapping file to replace track_id with song_title and add artist_name.
 
-## Formato File di Mapping (Opzionale)
-Ogni riga:
+## Optional mapping file format
+Each line:
 ```
 TRACK_ID<SEP>SONG_ID<SEP>Artist_name<SEP>Song_title
 ```
-Esempio:
+Example:
 ```
 TRMMMYQ128F932D901<SEP>SOQMMHC12AB0180CB8<SEP>Faster Pussy cat<SEP>Silent Night
 ```
-Comportamento:
-- Se fornito: la prima colonna del CSV finale delle feature diventa `song_title` e la seconda `artist_name`.
-- Se non fornito: il CSV mantiene `track_id` come prima colonna e non include `artist_name`.
+Behavior:
+- If provided: the first column of the final features CSV becomes song_title and the second artist_name.
+- If not provided: the CSV keeps track_id as first column and does not include artist_name.
 
-## Pipeline (Sintesi)
-1. Caricamento o estrazione feature (audio o MSD) + nomi feature.
-2. Deduplicazione di vettori identici.
-3. Normalizzazione Min‑Max [0,1].
-4. PCA (default: varianza conservata `0.98`).
-5. Clustering (Spectral, K‑Means, DBSCAN) con metriche Silhouette & Davies–Bouldin.
-6. Report markdown + figure salvate in `clustering_results/<algo>/...`.
+## Pipeline overview
+1. Load or extract features (audio or MSD) + feature names.
+2. Deduplicate identical feature vectors.
+3. Normalize features with the selected scaler (MinMax [0,1] by default or StandardScaler via --scaler).
+4. PCA (default keeps 0.98 explained variance).
+5. Clustering (Spectral, K‑Means, DBSCAN) with Silhouette & Davies–Bouldin metrics.
+6. Save markdown reports and figures under clustering_results/<algo>/...
 
-## Argomenti CLI Principali
-| Argomento | Valori / Tipo | Descrizione |
-|-----------|---------------|-------------|
-| `--mode` | `single` / `grid` | Esecuzione singola o grid search |
-| `--which` | elenco (`spectral kmeans dbscan`) | Limita algoritmi in modalità grid |
-| `--dbscan-space` | `reduced` / `reduced_minmax` / `normalized` | Spazio feature per DBSCAN |
-| `--feature-source` | `audio` / `msd` | Origine feature |
-| `--msd-root` | path | Radice albero file `.h5` MSD |
-| `--msd-csv` | path CSV | Cache feature MSD (riusata se esiste) |
-| `--msd-titles-file` | path TXT | Mapping `track_id`→titolo/artista |
-| `--msd-max-files` | int | Limita numero file (debug) |
+## CLI arguments
+- --mode {single,grid}: single run or grid search.
+- --which [spectral kmeans dbscan]: restrict algorithms in grid mode.
+- --dbscan-space {reduced,reduced_minmax,normalized}: feature space used by DBSCAN.
+- --scaler {minmax,standard}: feature scaler (default: minmax).
+- --workers INT: number of parallel processes for audio feature extraction (default: 1).
+- --feature-source {audio,msd}: feature origin.
+- --msd-root PATH: MSD .h5 root folder.
+- --msd-csv PATH: CSV cache for MSD features (reused if exists).
+- --msd-titles-file PATH: mapping track_id→title/artist.
+- --msd-max-files INT: limit number of processed .h5 files (debug).
 
-(Parametri di clustering base si editano in cima a `main.py`: `N_CLUSTERS`, `PCA_COMPONENTS`, `SPECTRAL_CLUSTERING_GAMMA`, `DBSCAN_EPS`, `DBSCAN_MIN_SAMPLES`, `DBSCAN_METRIC` e le rispettive grid `*_PARAM_GRID`).
+Base clustering parameters can be edited at the top of main.py: N_CLUSTERS, PCA_COMPONENTS, SPECTRAL_CLUSTERING_GAMMA, DBSCAN_EPS, DBSCAN_MIN_SAMPLES, DBSCAN_METRIC and the corresponding *_PARAM_GRID.
 
-## Utilizzo – Audio Locale
-Esecuzione singola:
+## Usage – Local audio
+Single run (recommended DBSCAN space):
 ```bash
 python main.py --feature-source audio --mode single --dbscan-space reduced_minmax
 ```
-Grid search (tutti gli algoritmi):
+Use StandardScaler and 4 workers:
 ```bash
-python main.py --feature-source audio --mode grid --which spectral kmeans dbscan
+python main.py --feature-source audio --mode single --scaler standard --workers 4
+```
+Grid search (all algorithms):
+```bash
+python main.py --feature-source audio --mode grid --which spectral kmeans dbscan --workers 4
 ```
 
-## Utilizzo – Million Song Dataset (.h5)
-Esecuzione singola con mapping titoli:
+## Usage – Million Song Dataset (.h5)
+Single run with titles mapping:
 ```bash
-python main.py --feature-source msd --msd-root "C:\\Users\\me\\Downloads\\millionsongsubset" --msd-csv dataset/songs_features/msd_h5_features.csv --msd-titles-file "C:\\Users\\me\\Downloads\\track_title_mapping.txt" --mode single
+python main.py --feature-source msd --msd-root "C:\\path\\to\\millionsongsubset" --msd-csv dataset/songs_features/msd_h5_features.csv --msd-titles-file "C:\\path\\to\\unique_tracks.txt" --mode single
 ```
 Grid search:
 ```bash
-python .\main.py --mode grid --which spectral kmeans dbscan --feature-source msd --msd-root C:\Users\david\Downloads\millionsongsubset --msd-csv .\dataset\TheMillionSongDataset_subset\songs_features_msd.csv --msd-titles-file "C:\Users\david\Downloads\Nuova cartella\unique_tracks.txt"
+python main.py --mode grid --which spectral kmeans dbscan --feature-source msd --msd-root C:\\path\\to\\millionsongsubset --msd-csv .\dataset\TheMillionSongDataset_subset\songs_features_msd.csv
 ```
-Limita numero file (debug veloce):
+Limit number of files (quick debug):
 ```bash
-python main.py --feature-source msd --msd-root "C:\\Users\\me\\Downloads\\millionsongsubset" --msd-csv dataset/songs_features/msd_test50.csv --msd-max-files 50 --mode single
+python main.py --feature-source msd --msd-root "C:\\path\\to\\millionsongsubset" --msd-csv dataset/songs_features/msd_test50.csv --msd-max-files 50 --mode single
 ```
-Esempio minimale senza mapping:
+Minimal example without mapping:
 ```bash
 python main.py --feature-source msd --msd-root "C:\\msd_subset" --mode single
 ```
 
-## Spazio Feature per DBSCAN
-`--dbscan-space`:
-- `reduced`: componenti PCA così come sono.
-- `reduced_minmax`: ri‑applica Min‑Max dopo PCA (default consigliato per distanze euclidee).
-- `normalized`: spazio normalizzato pre‑PCA.
+## DBSCAN feature space
+--dbscan-space:
+- reduced: raw PCA components.
+- reduced_minmax: re‑apply MinMax after PCA (default recommendation for Euclidean distances).
+- normalized: pre‑PCA normalized space.
 
-## Output
-Per ogni algoritmo:
-- Plot cluster (PCA + t‑SNE) e per DBSCAN anche k‑distance.
-- Report markdown con metriche e breakdown feature originali.
-- In grid search: `grid_summary.csv` con risultati e link cartelle run.
+## Performance
+- Parallelize audio feature extraction: use --workers N to run extraction with N processes (e.g., 4) while preserving output order.
+- Reuse CSV caches: point CSV_FEATURE_FILENAME (audio) or --msd-csv (MSD) to an existing CSV to skip re‑extraction.
 
-## Caching delle Feature MSD
-- Se il file passato con `--msd-csv` esiste viene riusato (nessuna ri‑estrazione).
-- Per rigenerare: cancellare il CSV e rilanciare il comando.
+## Outputs
+Per algorithm:
+- Cluster plots (PCA + t‑SNE) and k‑distance for DBSCAN.
+- Markdown report with metrics and breakdown of original features.
+- In grid search: grid_summary.csv with results and run folders.
 
-## Note di Qualità & Consigli
-- La scelta di `eps` e `min_samples` in DBSCAN richiede ispezione del grafico k‑distance generato.
-- Troppi duplicati possono ridurre varietà: la pipeline rimuove feature vector identici.
-- Puoi ridurre/espandere la varianza PCA (`PCA_COMPONENTS`) per bilanciare rumore vs informazione.
+## MSD feature caching
+- If the file passed to --msd-csv exists, it is reused (no re‑extraction).
+- To regenerate: delete the CSV and rerun.
+
+## Notes & tips
+- DBSCAN eps and min_samples require inspection of the generated k‑distance plot.
+- Too many duplicates can reduce variety: the pipeline removes identical feature vectors.
+- You can adjust PCA variance (PCA_COMPONENTS) to balance noise vs. information.
 
 ## Troubleshooting
-| Problema | Possibile Soluzione |
-|----------|--------------------|
-| CSV MSD non cambia | Elimina il file cache e rilancia |
-| Nessun file .h5 trovato | Controlla il path in `--msd-root` |
-| MemoryError | Usa `--msd-max-files` o abbassa PCA / processa a batch (estensione futura) |
-| Titoli mancanti | Verifica presenza `track_id` nel file mapping |
-| Pochi cluster | Regola `N_CLUSTERS` o parametri DBSCAN |
-| Metriche vuote DBSCAN | Accade se meno di 2 cluster “validi” (escludendo noise) |
+- MSD CSV does not change: delete the cache and rerun.
+- No .h5 files found: check --msd-root.
+- MemoryError: use --msd-max-files or lower PCA, or process in batches (future extension).
+- Missing titles: ensure the track_id is present in the mapping file.
+- Few clusters: tune N_CLUSTERS or DBSCAN parameters.
+- Empty DBSCAN metrics: happens if fewer than 2 "valid" clusters (excluding noise).

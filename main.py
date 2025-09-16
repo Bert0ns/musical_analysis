@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from lib.extract_data_features import get_audio_features
 from lib.dbscan_clustering import run_dbscan_clustering_pipeline
@@ -8,16 +8,14 @@ from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
 from lib.extract_msd_h5_features import get_msd_h5_features
 
-CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
-SONGS_DIR = "dataset/songs/trap"  # Cambia con il percorso della tua cartella di canzoni
+CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
+SONGS_DIR = "dataset/GTZAN/audio"  # Cambia con il percorso della tua cartella di canzoni
 
 RESULTS_SC = "clustering_results/spectral_clustering"
 RESULTS_KM = "clustering_results/kmeans"
 RESULTS_DBSCAN = "clustering_results/dbscan"
 
 N_CLUSTERS = 5  # Numero di cluster da creare
-PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
-
 SPECTRAL_CLUSTERING_GAMMA = 0.2  # Parametro gamma per lo spectral clustering
 
 # Parametri DBSCAN (valori di default, puoi regolarli dopo aver guardato i grafici)
@@ -29,6 +27,8 @@ DBSCAN_METRIC = 'euclidean'
 import os
 import csv
 from lib.utils import computer_clustering_scores, _param_product, _fmt_float
+
+PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
 
 SPECTRAL_PARAM_GRID = {
     'n_clusters': [3, 5, 7],
@@ -186,6 +186,10 @@ if __name__ == "__main__":
         default='reduced_minmax',
         help='Spazio feature usato da DBSCAN'
     )
+    # Scelta dello scaler per la normalizzazione delle feature
+    parser.add_argument('--scaler', choices=['minmax', 'standard'], default='minmax', help='Seleziona lo scaler per la normalizzazione: minmax (default) o standard')
+    # Nuovo: numero di processi per l'estrazione feature audio
+    parser.add_argument('--workers', type=int, default=1, help='Numero di processi per estrazione feature audio (default: 1)')
     # NUOVI ARGOMENTI per usare le feature del Million Song Dataset
     parser.add_argument('--feature-source', choices=['audio', 'msd'], default='audio', help='Origine delle feature: audio locale (librosa) oppure msd (file .h5)')
     parser.add_argument('--msd-root', type=str, default=None, help='Cartella radice dei file .h5 MSD')
@@ -197,7 +201,7 @@ if __name__ == "__main__":
     # ================= CARICAMENTO FEATURE =================
     if args.feature_source == 'audio':
         print("Caricamento delle feature audio (estrazione locale/librosa)...")
-        filenames, music_genres, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME)
+        filenames, music_genres, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME, n_jobs=args.workers)
         source_label = 'audio'
     else:
         if args.msd_root is None and args.msd_csv is None:
@@ -223,8 +227,12 @@ if __name__ == "__main__":
     music_genres = [music_genres[i] for i in unique_indices]
     print("Shape feature array dopo rimozione duplicati:", features.shape)
 
-    # Normalizzazione delle feature (MinMax: range 0-1)
-    scaler = MinMaxScaler()
+    # Normalizzazione delle feature con scaler selezionabile
+    if args.scaler == 'standard':
+        scaler = StandardScaler()
+    else:
+        scaler = MinMaxScaler()
+    print(f"Scaler selezionato: {scaler.__class__.__name__}")
     features_norm = scaler.fit_transform(features)
 
     # Copia per report dettagliato (prima della PCA)
