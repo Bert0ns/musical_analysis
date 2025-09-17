@@ -8,8 +8,8 @@ from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
 from lib.extract_msd_h5_features import get_msd_h5_features
 
-CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
-SONGS_DIR = "dataset/GTZAN/audio"  # Cambia con il percorso della tua cartella di canzoni
+CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
+SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
 
 RESULTS_SC = "clustering_results/spectral_clustering"
 RESULTS_KM = "clustering_results/kmeans"
