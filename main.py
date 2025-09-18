@@ -32,17 +32,17 @@ PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
 
 SPECTRAL_PARAM_GRID = {
     'n_clusters': [3, 5, 7],
-    'gamma': [0.1, 0.2, 0.5],
+    'gamma': [0.1, 0.2, 0.3, 0.5],
 }
 
 KMEANS_PARAM_GRID = {
-    'n_clusters': [3, 5, 7, 9],
+    'n_clusters': [3, 4, 5, 6, 7],
 }
 
 DBSCAN_PARAM_GRID = {
-    'eps': [0.032, 0.034, 0.038],
-    'min_samples': [5, 8, 12],
-    'metric': ['euclidean', 'cosine'],
+    'eps': [0.031, 0.034, 0.038],
+    'min_samples': [5, 8, 12, 18],
+    'metric': ['euclidean'], # 'cosine'
 }
 
 
