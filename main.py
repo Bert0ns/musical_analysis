@@ -36,7 +36,7 @@ SPECTRAL_PARAM_GRID = {
 }
 
 KMEANS_PARAM_GRID = {
-    'n_clusters': [3, 4, 5, 6, 7],
+    'n_clusters': [4,7],
 }
 
 DBSCAN_PARAM_GRID = {
