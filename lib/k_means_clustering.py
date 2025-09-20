@@ -68,15 +68,17 @@ def silhouette_score_analysis_kmeans(features, range_k=(2, 20),
     best_idx = int(np.argmax(sil_values))
     best_k = k_values[best_idx]
     best_sil = sil_values[best_idx]
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
     plt.plot(k_values, sil_values, 'o-')
     plt.xlabel('Numero di cluster (k)')
     plt.ylabel('Silhouette Score')
     plt.title(f'Analisi Silhouette K-Means (k={best_k}, Silhouette={best_sil:.3f})')
     plt.grid(True)
+    plt.tight_layout()
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
+    plt.close(fig)
     return risultati
 
 
@@ -98,15 +100,17 @@ def elbow_method_kmeans(features, range_k=(2, 20), fig_name='clustering_results/
         return []
     k_values = [r[0] for r in risultati]
     inertia_values = [r[1] for r in risultati]
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
     plt.plot(k_values, inertia_values, 'o-')
     plt.xlabel('Numero di cluster (k)')
     plt.ylabel('Inertia (Somma quadrati entro-cluster)')
     plt.title('Elbow Method K-Means')
     plt.grid(True)
+    plt.tight_layout()
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
+    plt.close(fig)
     return risultati
 
 

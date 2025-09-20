@@ -18,15 +18,18 @@ def plot_clusters_results(filenames, features, labels, fig_name='clustering_resu
     features_2d = pca.fit_transform(features)
 
     # Mostra i cluster
-    plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(10, 8))
     scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
     plt.colorbar(scatter, label='Cluster')
     plt.title('Rappresentazione PCA a 2 componenti dei brani clusterizzati')
     plt.xlabel('Componente Principale 1')
     plt.ylabel('Componente Principale 2')
+    plt.tight_layout()
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
+    # Chiudi esplicitamente la figura per evitare accumulo in memoria
+    plt.close(fig)
 
 
 def plot_tsne_clustering(features, labels, filenames, fig_name='clustering_results/clusters_tsne.png', show_fig=False):
@@ -35,21 +38,24 @@ def plot_tsne_clustering(features, labels, filenames, fig_name='clustering_resul
     features_2d = tsne.fit_transform(features)
 
     # Crea la visualizzazione
-    plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(12, 10))
     scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
     plt.colorbar(scatter, label='Cluster')
     plt.title('Clustering dei brani (t-SNE)')
 
     # Aggiungi etichette per alcuni punti
-    for i in range(0, len(filenames), len(filenames) // 20):  # Mostra circa 20 etichette
+    for i in range(0, len(filenames), max(1, len(filenames) // 20)):
         plt.annotate(filenames[i].split('/')[-1], (features_2d[i, 0], features_2d[i, 1]))
 
+    plt.tight_layout()
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
+    # Chiudi esplicitamente la figura per evitare accumulo in memoria
+    plt.close(fig)
 
 
-def salva_risultati_markdown(filenames, features, labels, feature_names=None, path='clustering_results/report.md', n_repr=5, generi=None, sil=None, dbi=None):
+def salva_risultati_markdown(filenames, features, labels, feature_names=None, path='clustering_results/report.md', n_repr=5, generi=None, sil=None, dbi=None, show_all_samples_in_clusters=False):
     """Salva un report in formato Markdown con i risultati del clustering.
 
     Parametri:
@@ -145,13 +151,15 @@ def salva_risultati_markdown(filenames, features, labels, feature_names=None, pa
             lines.append(f"- {filenames[gi]}")
 
         # Elenco completo dei brani
-        lines.append("")
-        lines.append("**Tutti i brani nel cluster:**")
-        for gi in cluster_idx:
-            if generi is not None:
-                lines.append(f"- {filenames[gi]} (genere: {generi[gi]})")
-            else:
-                lines.append(f"- {filenames[gi]}")
+        if show_all_samples_in_clusters:
+            lines.append("")
+            lines.append("**Tutti i brani nel cluster:**")
+            for gi in cluster_idx:
+                if generi is not None:
+                    lines.append(f"- {filenames[gi]} (genere: {generi[gi]})")
+                else:
+                    lines.append(f"- {filenames[gi]}")
+
 
         # Statistiche feature (solo se coerenti con feature_names)
         if feature_names is not None and len(feature_names) == features.shape[1]:

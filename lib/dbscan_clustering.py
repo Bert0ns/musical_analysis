@@ -72,15 +72,17 @@ def silhouette_analysis_dbscan(features, eps_values, min_samples=5, metric='eucl
         best_idx = int(np.argmax(y_plot))
         best_eps = x_plot[best_idx]
         best_sil = y_plot[best_idx]
-        plt.figure(figsize=(10, 6))
+        fig = plt.figure(figsize=(10, 6))
         plt.plot(x_plot, y_plot, 'o-')
         plt.xlabel('eps')
         plt.ylabel('Silhouette Score (solo punti non-noise)')
         plt.title(f'Analisi Silhouette DBSCAN (best eps={best_eps}, sil={best_sil:.3f})')
         plt.grid(True)
+        plt.tight_layout()
         plt.savefig(fig_name)
         if show_fig:
             plt.show()
+        plt.close(fig)
     return risultati
 
 
@@ -94,15 +96,17 @@ def k_distance_plot_dbscan(features, k=5, fig_name='clustering_results/k_distanc
     distances, _ = neigh.kneighbors(features)
     # la distanza al k-esimo vicino è la colonna k-1 (ordinata successivamente)
     k_dist = np.sort(distances[:, k-1])
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
     plt.plot(k_dist)
     plt.xlabel('Punti ordinati')
     plt.ylabel(f'Distanza al {k}-esimo vicino')
     plt.title(f'K-distance Plot (k={k}) per stima eps DBSCAN')
     plt.grid(True)
+    plt.tight_layout()
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
+    plt.close(fig)
     return k_dist
 
 
@@ -203,4 +207,3 @@ __all__ = [
     'k_distance_plot_dbscan',
     'run_dbscan_clustering_pipeline',
 ]
-

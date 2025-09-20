@@ -64,6 +64,11 @@ def silhouette_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(
         except:
             pass
 
+    # Se non ci sono risultati validi, esci senza creare figure
+    if not risultati:
+        print("[silhouette] Nessun risultato valido ottenuto: salto la generazione della figura.")
+        return risultati
+
     # Plot dei risultati
     k_values = [r[0] for r in risultati]
     sil_values = [r[1] for r in risultati]
@@ -72,15 +77,18 @@ def silhouette_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(
     best_k = k_values[best_idx]
     best_sil = sil_values[best_idx]
 
-    plt.figure(figsize=(10, 6))
+    fig = plt.figure(figsize=(10, 6))
     plt.plot(k_values, sil_values, 'o-')
     plt.xlabel('Numero di cluster')
     plt.ylabel('Silhouette Score')
     plt.title(f'Valutazione del numero ottimale di cluster (k={best_k}, Silhouette={best_sil:.3f})')
     plt.grid(True)
-    plt.savefig(fig_name)
+    plt.tight_layout()
+    fig.savefig(fig_name)
     if show_fig:
         plt.show()
+    # Chiude esplicitamente la figura per evitare accumulo in memoria
+    plt.close(fig)
 
     return risultati
 
