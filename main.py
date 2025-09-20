@@ -8,6 +8,10 @@ from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
 from lib.extract_msd_h5_features import get_msd_h5_features
 
+import os
+import csv
+from lib.utils import computer_clustering_scores, _param_product, _fmt_float
+
 CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
 
@@ -24,15 +28,11 @@ DBSCAN_MIN_SAMPLES = 8
 DBSCAN_METRIC = 'euclidean'
 
 # ===================== PARAM GRID (valori esempio, modifica liberamente) =====================
-import os
-import csv
-from lib.utils import computer_clustering_scores, _param_product, _fmt_float
-
 PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
 
 SPECTRAL_PARAM_GRID = {
-    'n_clusters': [3, 5, 7],
-    'gamma': [0.1, 0.2, 0.3, 0.5],
+    'n_clusters': [4, 5, 7, 8],
+    'gamma': [0.2, 0.35, 0.5],
 }
 
 KMEANS_PARAM_GRID = {
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     features_norm_original = features_norm.copy()
 
     # Riduzione della dimensionalità con PCA
-    pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full')
+    pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full', random_state=42)
     features_reduced = pca.fit_transform(features_norm)
     print("Shape feature array dopo PCA:", features_reduced.shape)
 

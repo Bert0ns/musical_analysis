@@ -21,7 +21,7 @@ def plot_clusters_results(filenames, features, labels, fig_name='clustering_resu
     plt.figure(figsize=(10, 8))
     scatter = plt.scatter(features_2d[:, 0], features_2d[:, 1], c=labels, cmap='viridis', alpha=0.7)
     plt.colorbar(scatter, label='Cluster')
-    plt.title('Clustering Spettrale delle Canzoni')
+    plt.title('Rappresentazione PCA a 2 componenti dei brani clusterizzati')
     plt.xlabel('Componente Principale 1')
     plt.ylabel('Componente Principale 2')
     plt.savefig(fig_name)

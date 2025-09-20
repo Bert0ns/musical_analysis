@@ -22,11 +22,7 @@ def kmeans_clustering_classifier(features, n_clusters=5, n_init='auto', random_s
         labels (np.ndarray): etichette di cluster
         centers (np.ndarray): centroidi (n_clusters, n_features)
     """
-    try:
-        model = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=random_state, max_iter=max_iter)
-    except TypeError:
-        # Fallback per versioni vecchie di scikit-learn dove n_init='auto' non è supportato
-        model = KMeans(n_clusters=n_clusters, n_init=10, random_state=random_state, max_iter=max_iter)
+    model = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=random_state, max_iter=max_iter)
     labels = model.fit_predict(features)
     return labels, model.cluster_centers_
 
