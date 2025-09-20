@@ -9,17 +9,14 @@ import matplotlib.pyplot as plt
 from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clustering_scores, salva_risultati_markdown
 
 
-def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
+def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0, random_state=42):
     """
     Crea un classificatore utilizzando l'algoritmo di spectral clustering.
-
-    Args:
-        features: array delle feature audio
-        n_clusters: numero di cluster da creare
-        gamma: parametro per il kernel RBF
-
-    Returns:
-        labels: etichette di cluster assegnate ad ogni canzone
+    :param gamma: parametro per il kernel RBF
+    :param n_clusters: numero di cluster da creare
+    :param features: array delle feature
+    :param random_state: seme per la riproducibilità
+    :return: labels: etichette di cluster assegnate a ogni sample
     """
     # Calcolo della matrice di affinità con kernel RBF
     affinity_matrix = rbf_kernel(features, gamma=gamma)
@@ -27,7 +24,7 @@ def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0):
     # Applica spectral clustering
     model = SpectralClustering(n_clusters=n_clusters,
                                affinity='precomputed',
-                               random_state=42,
+                               random_state=random_state,
                                )
 
     # Addestra il modello e ottieni le etichette
@@ -97,6 +94,7 @@ def run_spectral_clustering_pipeline(
         results_dir: str,
         n_clusters: int,
         gamma: float,
+        report_detailed: bool = False,
 ):
     """Esegue l'intera pipeline di spectral clustering e salva grafici/report.
 
@@ -111,9 +109,9 @@ def run_spectral_clustering_pipeline(
     plot_clusters_results(filenames, features_reduced, spectral_clustering_labels, results_dir + "/clusters_plot.png")
 
     print("Analisi dei cluster (Spectral)...")
-    trova_brani_rappresentativi(features_reduced, spectral_clustering_labels, filenames)
+    #trova_brani_rappresentativi(features_reduced, spectral_clustering_labels, filenames)
     plot_tsne_clustering(features_reduced, spectral_clustering_labels, filenames, results_dir + "/tsne_clusters_plot.png")
-    computer_clustering_scores(features_reduced, spectral_clustering_labels)
+    sil, dbi = computer_clustering_scores(features_reduced, spectral_clustering_labels)
 
     print("Generazione report Markdown spectral clustering...")
     report_path = salva_risultati_markdown(
@@ -125,17 +123,18 @@ def run_spectral_clustering_pipeline(
         n_repr=5,
         generi=music_genres,
     )
-    report_detailed_path = salva_risultati_markdown(
-        filenames,
-        features_norm_original,
-        spectral_clustering_labels,
-        feature_names=features_names,
-        path=results_dir + "/report_dettagliato_feature_originali_SC.md",
-        n_repr=5,
-        generi=music_genres,
-    )
     print(f"Report generato: {report_path}")
-    print(f"Report dettagliato generato: {report_detailed_path}")
+    if report_detailed:
+        report_detailed_path = salva_risultati_markdown(
+            filenames,
+            features_norm_original,
+            spectral_clustering_labels,
+            feature_names=features_names,
+            path=results_dir + "/report_dettagliato_feature_originali_SC.md",
+            n_repr=5,
+            generi=music_genres,
+        )
+        print(f"Report dettagliato generato: {report_detailed_path}")
 
     # Analisi del silhouette score per diversi numeri di cluster
     silhouette_score_analysis_spectral_clustering(
@@ -145,4 +144,4 @@ def run_spectral_clustering_pipeline(
         fig_name=results_dir + "/silhouette_analysis_spectral_clustering.png",
     )
 
-    return spectral_clustering_labels
+    return spectral_clustering_labels, sil, dbi

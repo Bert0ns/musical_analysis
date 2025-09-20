@@ -1,9 +1,9 @@
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-import matplotlib.pyplot as plt
 
 from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clustering_scores, salva_risultati_markdown
 
@@ -47,7 +47,8 @@ def trova_brani_rappresentativi_kmeans(features, labels, filenames, n=3, centers
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
-def silhouette_score_analysis_kmeans(features, range_k=(2, 20), fig_name='clustering_results/silhouette_analysis_kmeans.png', show_fig=False):
+def silhouette_score_analysis_kmeans(features, range_k=(2, 20),
+                                     fig_name='clustering_results/silhouette_analysis_kmeans.png', show_fig=False):
     """Calcola il silhouette score per un range di k e genera il grafico.
 
     Ritorna: lista di tuple (k, silhouette)
@@ -79,7 +80,8 @@ def silhouette_score_analysis_kmeans(features, range_k=(2, 20), fig_name='cluste
     return risultati
 
 
-def elbow_method_kmeans(features, range_k=(2, 20), fig_name='clustering_results/elbow_analysis_kmeans.png', show_fig=False):
+def elbow_method_kmeans(features, range_k=(2, 20), fig_name='clustering_results/elbow_analysis_kmeans.png',
+                        show_fig=False):
     """Calcola l'inertia (somma quadrati entro-cluster) per diversi k e genera grafico elbow."""
     risultati = []  # (k, inertia)
     for k in range(range_k[0], range_k[1]):
@@ -116,6 +118,7 @@ def run_kmeans_clustering_pipeline(
         music_genres,
         results_dir: str,
         n_clusters: int,
+        report_detailed: bool = False,
 ):
     """Esegue l'intera pipeline di K-Means e salva grafici/report.
 
@@ -132,7 +135,7 @@ def run_kmeans_clustering_pipeline(
 
     print("Analisi dei cluster (K-Means)...")
     trova_brani_rappresentativi_kmeans(features_reduced, kmeans_labels, filenames, n=5, centers=kmeans_centers)
-    computer_clustering_scores(features_reduced, kmeans_labels)
+    sil, dbi = computer_clustering_scores(features_reduced, kmeans_labels)
 
     print("Generazione report Markdown K-Means...")
     report_km = salva_risultati_markdown(
@@ -143,18 +146,16 @@ def run_kmeans_clustering_pipeline(
         path=results_dir + "/report_KM.md",
         n_repr=5,
         generi=music_genres,
-    )
-    report_km_detailed = salva_risultati_markdown(
-        filenames,
-        features_norm_original,
-        kmeans_labels,
-        feature_names=features_names,
-        path=results_dir + "/report_dettagliato_feature_originali_KM.md",
-        n_repr=5,
-        generi=music_genres,
+        sil=sil,
+        dbi=dbi,
     )
     print(f"Report K-Means generato: {report_km}")
-    print(f"Report dettagliato K-Means generato: {report_km_detailed}")
+    if report_detailed:
+        report_km_detailed = salva_risultati_markdown(filenames, features_norm_original, kmeans_labels,
+                                                      feature_names=features_names,
+                                                      path=results_dir + "/report_dettagliato_feature_originali_KM.md",
+                                                      n_repr=5, generi=music_genres, sil=sil, dbi=dbi)
+        print(f"Report dettagliato K-Means generato: {report_km_detailed}")
 
     # Analisi silhouette K-Means
     silhouette_score_analysis_kmeans(
@@ -169,7 +170,7 @@ def run_kmeans_clustering_pipeline(
         fig_name=results_dir + "/elbow_analysis_kmeans.png",
     )
 
-    return kmeans_labels, kmeans_centers
+    return kmeans_labels, kmeans_centers, sil, dbi
 
 
 __all__ = [

@@ -116,6 +116,7 @@ def run_dbscan_clustering_pipeline(
         eps: float,
         min_samples: int,
         metric: str,
+        report_detailed: bool = False,
 ):
     """Esegue l'intera pipeline di DBSCAN e salva grafici/report.
 
@@ -159,11 +160,15 @@ def run_dbscan_clustering_pipeline(
         if len(unique_dbscan_clusters) >= 2:
             # Usiamo solo punti non-noise per silhouette e DB
             valid_mask = dbscan_labels != -1
-            computer_clustering_scores(features_reduced[valid_mask], dbscan_labels[valid_mask])
+            sil, dbi = computer_clustering_scores(features_reduced[valid_mask], dbscan_labels[valid_mask])
         else:
             print("Metriche DBSCAN saltate: meno di 2 cluster validi.")
+            sil = None
+            dbi = None
     except Exception as e:
         print(f"Errore calcolo metriche DBSCAN: {e}")
+        sil = None
+        dbi = None
 
     print("Generazione report Markdown DBSCAN...")
     report_dbscan = salva_risultati_markdown(
@@ -175,19 +180,20 @@ def run_dbscan_clustering_pipeline(
         n_repr=5,
         generi=music_genres,
     )
-    report_dbscan_detailed = salva_risultati_markdown(
-        filenames,
-        features_norm_original,
-        dbscan_labels,
-        feature_names=features_names,
-        path=results_dir + "/report_dettagliato_feature_originali_DBSCAN.md",
-        n_repr=5,
-        generi=music_genres,
-    )
     print(f"Report DBSCAN generato: {report_dbscan}")
-    print(f"Report dettagliato DBSCAN generato: {report_dbscan_detailed}")
+    if report_detailed:
+        report_dbscan_detailed = salva_risultati_markdown(
+            filenames,
+            features_norm_original,
+            dbscan_labels,
+            feature_names=features_names,
+            path=results_dir + "/report_dettagliato_feature_originali_DBSCAN.md",
+            n_repr=5,
+            generi=music_genres,
+        )
+        print(f"Report dettagliato DBSCAN generato: {report_dbscan_detailed}")
 
-    return dbscan_labels, dbscan_model
+    return dbscan_labels, dbscan_model, sil, dbi
 
 
 __all__ = [

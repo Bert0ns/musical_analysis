@@ -49,7 +49,7 @@ def plot_tsne_clustering(features, labels, filenames, fig_name='clustering_resul
         plt.show()
 
 
-def salva_risultati_markdown(filenames, features, labels, feature_names=None, path='clustering_results/report.md', n_repr=5, generi=None):
+def salva_risultati_markdown(filenames, features, labels, feature_names=None, path='clustering_results/report.md', n_repr=5, generi=None, sil=None, dbi=None):
     """Salva un report in formato Markdown con i risultati del clustering.
 
     Parametri:
@@ -72,16 +72,6 @@ def salva_risultati_markdown(filenames, features, labels, feature_names=None, pa
     counts = {cid: int(np.sum(labels == cid)) for cid in np.unique(labels)}
     totale = len(labels)
 
-    # Metriche globali (gestione try per sicurezza)
-    try:
-        sil = silhouette_score(features, labels)
-    except Exception:
-        sil = None
-    try:
-        dbi = davies_bouldin_score(features, labels)
-    except Exception:
-        dbi = None
-
     # Distribuzione generi per cluster (se disponibile)
     distrib_gen = None
     conteggio_genere_tot = None
@@ -92,13 +82,17 @@ def salva_risultati_markdown(filenames, features, labels, feature_names=None, pa
     lines.append(f"# Report Clustering Musicale")
     lines.append("")
     lines.append(f"Generato: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append("")
     lines.append(f"Numero di brani: {totale}")
+    lines.append("")
     lines.append(f"Numero di cluster: {n_clusters}")
+    lines.append("")
     if sil is not None:
         lines.append(f"Silhouette Score: {sil:.3f} (più alto è migliore, max 1)")
+        lines.append("")
     if dbi is not None:
         lines.append(f"Davies-Bouldin Index: {dbi:.3f} (più basso è migliore)")
-    lines.append("")
+        lines.append("")
 
     # Tabella riassuntiva dimensioni cluster
     lines.append("## Sommario Cluster")
