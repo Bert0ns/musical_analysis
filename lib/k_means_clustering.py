@@ -3,7 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+from typing import List
 
 from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clustering_scores, salva_risultati_markdown
 
@@ -47,34 +48,62 @@ def trova_brani_rappresentativi_kmeans(features, labels, filenames, n=3, centers
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
-def silhouette_score_analysis_kmeans(features, range_k=(2, 20),
-                                     fig_name='clustering_results/silhouette_analysis_kmeans.png', show_fig=False):
-    """Calcola il silhouette score per un range di k e genera il grafico.
+def sil_dbi_score_analysis_kmeans(features, range_k=(2, 20),
+                                  fig_name='clustering_results/sil_dbi_analysis_kmeans.png', show_fig=False):
+    """Calcola Silhouette Score e Davies-Bouldin Index per un range di k e genera un grafico con doppio asse y.
 
-    Ritorna: lista di tuple (k, silhouette)
+    Ritorna: lista di tuple (k, silhouette, dbi)
     """
-    risultati = []
+    risultati = []  # (k, sil, dbi)
     for k in range(range_k[0], range_k[1]):
         try:
             labels, _ = kmeans_clustering_classifier(features, n_clusters=k)
             sil = silhouette_score(features, labels)
-            risultati.append((k, sil))
+            dbi = davies_bouldin_score(features, labels)
+            risultati.append((k, sil, dbi))
         except Exception:
             pass
     if not risultati:
         return []
+
     k_values = [r[0] for r in risultati]
     sil_values = [r[1] for r in risultati]
-    best_idx = int(np.argmax(sil_values))
-    best_k = k_values[best_idx]
-    best_sil = sil_values[best_idx]
-    fig = plt.figure(figsize=(10, 6))
-    plt.plot(k_values, sil_values, 'o-')
-    plt.xlabel('Numero di cluster (k)')
-    plt.ylabel('Silhouette Score')
-    plt.title(f'Analisi Silhouette K-Means (k={best_k}, Silhouette={best_sil:.3f})')
-    plt.grid(True)
-    plt.tight_layout()
+    dbi_values = [r[2] for r in risultati]
+
+    best_sil_idx = int(np.argmax(sil_values))
+    best_sil_k = k_values[best_sil_idx]
+    best_sil_val = sil_values[best_sil_idx]
+
+    best_dbi_idx = int(np.argmin(dbi_values))
+    best_dbi_k = k_values[best_dbi_idx]
+    best_dbi_val = dbi_values[best_dbi_idx]
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Silhouette (asse sinistro)
+    line1 = ax1.plot(k_values, sil_values, 'o-', color='tab:blue', label='Silhouette Score')
+    ax1.set_xlabel('Numero di cluster (k)')
+    ax1.set_ylabel('Silhouette Score', color='tab:blue')
+    ax1.tick_params(axis='y', labelcolor='tab:blue')
+    ax1.grid(True, which='both', linestyle='--', alpha=0.4)
+
+    # Davies-Bouldin (asse destro)
+    ax2 = ax1.twinx()
+    line2 = ax2.plot(k_values, dbi_values, 's--', color='tab:red', label='Davies-Bouldin Index')
+    ax2.set_ylabel('Davies-Bouldin Index', color='tab:red')
+    ax2.tick_params(axis='y', labelcolor='tab:red')
+
+    # Legenda combinata
+    lines = line1 + line2
+    legend_labels: List[str] = [str(ln.get_label()) for ln in lines]
+    ax1.legend(lines, legend_labels, loc='best')
+
+    plt.title(
+        f'Analisi Silhouette & Davies-Bouldin K-Means (best Sil k={best_sil_k}, {best_sil_val:.3f}; '
+        f'best DBI k={best_dbi_k}, {best_dbi_val:.3f})'
+    )
+
+    fig.tight_layout()
     plt.savefig(fig_name)
     if show_fig:
         plt.show()
@@ -162,10 +191,10 @@ def run_kmeans_clustering_pipeline(
         print(f"Report dettagliato K-Means generato: {report_km_detailed}")
 
     # Analisi silhouette K-Means
-    silhouette_score_analysis_kmeans(
+    sil_dbi_score_analysis_kmeans(
         features_reduced,
         range_k=(2, 20),
-        fig_name=results_dir + "/silhouette_analysis_kmeans.png",
+        fig_name=results_dir + "/sil_dbi_analysis_kmeans.png",
     )
     # Elbow method K-Means
     elbow_method_kmeans(
@@ -180,7 +209,7 @@ def run_kmeans_clustering_pipeline(
 __all__ = [
     'kmeans_clustering_classifier',
     'trova_brani_rappresentativi_kmeans',
-    'silhouette_score_analysis_kmeans',
+    'sil_dbi_score_analysis_kmeans',
     'elbow_method_kmeans',
     'run_kmeans_clustering_pipeline'
 ]

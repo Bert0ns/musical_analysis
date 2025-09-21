@@ -3,7 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score
 from sklearn.neighbors import NearestNeighbors
 
 from lib.utils import salva_risultati_markdown, computer_clustering_scores, plot_tsne_clustering, plot_clusters_results
@@ -45,44 +45,91 @@ def trova_brani_rappresentativi_dbscan(features, labels, filenames, n=3):
         print(f"\nPunti di rumore (noise, label -1): {noise_count}")
 
 
-def silhouette_analysis_dbscan(features, eps_values, min_samples=5, metric='euclidean', fig_name='clustering_results/silhouette_analysis_dbscan.png', show_fig=False):
-    """Valuta silhouette score al variare di eps.
+def sil_dbi_analysis_dbscan(features, eps_values, min_samples=5, metric='euclidean', fig_name='clustering_results/silhouette_analysis_dbscan.png', show_fig=False):
+    """Valuta silhouette score e Davies-Bouldin Index al variare di eps.
 
-    Vengono considerati solo i risultati con almeno 2 cluster validi e meno del 90% di noise.
-    Ritorna lista di tuple (eps, n_clusters, noise_ratio, silhouette or None).
+    Considera solo risultati con almeno 2 cluster validi (escludendo -1) e meno del 90% di noise.
+    Ritorna lista di tuple (eps, n_clusters, noise_ratio, silhouette or None, dbi or None).
     """
-    risultati = []
+    risultati = []  # (eps, n_clusters, noise_ratio, sil, dbi)
     for eps in eps_values:
         labels, _ = dbscan_clustering_classifier(features, eps=eps, min_samples=min_samples, metric=metric)
         unique_clusters = [c for c in np.unique(labels) if c != -1]
         noise_ratio = np.sum(labels == -1) / len(labels)
         sil = None
+        dbi = None
         if len(unique_clusters) >= 2 and noise_ratio < 0.9:
+            valid_mask = labels != -1
             try:
-                sil = silhouette_score(features, labels[labels != -1])  # silhouette sui soli punti assegnati
+                sil = silhouette_score(features[valid_mask], labels[valid_mask])  # silhouette sui soli punti non-noise
             except Exception:
                 sil = None
-        risultati.append((eps, len(unique_clusters), noise_ratio, sil))
+            try:
+                dbi = davies_bouldin_score(features[valid_mask], labels[valid_mask])  # DBI sui soli punti non-noise
+            except Exception:
+                dbi = None
+        risultati.append((eps, len(unique_clusters), noise_ratio, sil, dbi))
 
-    # Plot
-    valid = [(e, s) for (e, nc, nr, s) in risultati if s is not None]
-    if valid:
-        x_plot = [v[0] for v in valid]
-        y_plot = [v[1] for v in valid]
-        best_idx = int(np.argmax(y_plot))
-        best_eps = x_plot[best_idx]
-        best_sil = y_plot[best_idx]
-        fig = plt.figure(figsize=(10, 6))
-        plt.plot(x_plot, y_plot, 'o-')
-        plt.xlabel('eps')
-        plt.ylabel('Silhouette Score (solo punti non-noise)')
-        plt.title(f'Analisi Silhouette DBSCAN (best eps={best_eps}, sil={best_sil:.3f})')
-        plt.grid(True)
-        plt.tight_layout()
-        plt.savefig(fig_name)
-        if show_fig:
-            plt.show()
-        plt.close(fig)
+    # Plot con doppio asse Y
+    valid_sil = [(e, s) for (e, nc, nr, s, d) in risultati if s is not None]
+    valid_dbi = [(e, d) for (e, nc, nr, s, d) in risultati if d is not None]
+
+    if not valid_sil and not valid_dbi:
+        # Nessun risultato da plottare
+        return risultati
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    lines = []
+    labels_lines = []
+
+    best_sil_str = None
+    best_dbi_str = None
+
+    if valid_sil:
+        x_sil = [v[0] for v in valid_sil]
+        y_sil = [v[1] for v in valid_sil]
+        l1 = ax1.plot(x_sil, y_sil, 'o-', color='tab:blue', label='Silhouette Score (no-noise)')
+        lines += l1
+        labels_lines += [str(l.get_label()) for l in l1]
+        ax1.set_xlabel('eps')
+        ax1.set_ylabel('Silhouette Score (solo punti non-noise)', color='tab:blue')
+        ax1.tick_params(axis='y', labelcolor='tab:blue')
+        ax1.grid(True, which='both', linestyle='--', alpha=0.4)
+        best_idx = int(np.argmax(y_sil))
+        best_sil_str = f"best Sil eps={x_sil[best_idx]}, {y_sil[best_idx]:.3f}"
+
+    ax2 = None
+    if valid_dbi:
+        x_dbi = [v[0] for v in valid_dbi]
+        y_dbi = [v[1] for v in valid_dbi]
+        ax2 = ax1.twinx()
+        l2 = ax2.plot(x_dbi, y_dbi, 's--', color='tab:red', label='Davies-Bouldin Index (no-noise)')
+        lines += l2
+        labels_lines += [str(l.get_label()) for l in l2]
+        ax2.set_ylabel('Davies-Bouldin Index (solo punti non-noise)', color='tab:red')
+        ax2.tick_params(axis='y', labelcolor='tab:red')
+        best_idx_d = int(np.argmin(y_dbi))
+        best_dbi_str = f"best DBI eps={x_dbi[best_idx_d]}, {y_dbi[best_idx_d]:.3f}"
+
+    if lines:
+        ax1.legend(lines, labels_lines, loc='best')
+
+    # Titolo con riassunto dei best
+    title_parts = []
+    if best_sil_str:
+        title_parts.append(best_sil_str)
+    if best_dbi_str:
+        title_parts.append(best_dbi_str)
+    title_suffix = ' ; '.join(title_parts) if title_parts else ''
+    plt.title(f'Analisi Silhouette & Davies-Bouldin DBSCAN{(" (" + title_suffix + ")") if title_suffix else ""}')
+
+    fig.tight_layout()
+    plt.savefig(fig_name)
+    if show_fig:
+        plt.show()
+    plt.close(fig)
+
     return risultati
 
 
@@ -137,12 +184,12 @@ def run_dbscan_clustering_pipeline(
     print("Analisi silhouette su diversi eps per DBSCAN...")
     eps_values = np.linspace(0.1, 2.0, 25)
     try:
-        silhouette_analysis_dbscan(
+        sil_dbi_analysis_dbscan(
             features_reduced,
             eps_values,
             min_samples=min_samples,
             metric=metric,
-            fig_name=results_dir + "/silhouette_analysis_dbscan.png",
+            fig_name=results_dir + "/sil_dbi_analysis_dbscan.png",
         )
     except Exception as e:
         print(f"Errore silhouette analysis DBSCAN: {e}")
@@ -203,7 +250,7 @@ def run_dbscan_clustering_pipeline(
 __all__ = [
     'dbscan_clustering_classifier',
     'trova_brani_rappresentativi_dbscan',
-    'silhouette_analysis_dbscan',
+    'sil_dbi_analysis_dbscan',
     'k_distance_plot_dbscan',
     'run_dbscan_clustering_pipeline',
 ]

@@ -2,9 +2,10 @@ import os
 
 import numpy as np
 from sklearn.cluster import SpectralClustering
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score
 from sklearn.metrics.pairwise import rbf_kernel
 import matplotlib.pyplot as plt
+from typing import List
 
 from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clustering_scores, salva_risultati_markdown
 
@@ -51,39 +52,65 @@ def trova_brani_rappresentativi(features, labels, filenames, n=3):
 
 
 
-def silhouette_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 20), fig_name='clustering_results/silhouette_analysis_spectral_clustering.png', show_fig=False):
-    """Esegue un'analisi dello silhouette score per diversi numeri di cluster
-    utilizzando lo spectral clustering. Restituisce i risultati come lista di tuple (k, silhouette_score).
+def sil_dbi_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 20), fig_name='clustering_results/silhouette_analysis_spectral_clustering.png', show_fig=False):
+    """Esegue un'analisi con Silhouette Score e Davies-Bouldin Index per diversi k
+    utilizzando lo spectral clustering. Restituisce i risultati come lista di tuple (k, silhouette_score, dbi).
     """
-    risultati = []
+    risultati = []  # (k, sil, dbi)
     for k in range(range_k[0], range_k[1]):
         try:
             labels_k = spectral_clustering_classifier(features, n_clusters=k, gamma=gamma)
             sil = silhouette_score(features, labels_k)
-            risultati.append((k, sil))
-        except:
+            dbi = davies_bouldin_score(features, labels_k)
+            risultati.append((k, sil, dbi))
+        except Exception:
+            # Alcune combinazioni di k/gamma possono fallire; ignoro e proseguo
             pass
 
     # Se non ci sono risultati validi, esci senza creare figure
     if not risultati:
-        print("[silhouette] Nessun risultato valido ottenuto: salto la generazione della figura.")
+        print("[silhouette/dbi] Nessun risultato valido ottenuto: salto la generazione della figura.")
         return risultati
 
-    # Plot dei risultati
+    # Plot dei risultati con doppio asse Y
     k_values = [r[0] for r in risultati]
     sil_values = [r[1] for r in risultati]
+    dbi_values = [r[2] for r in risultati]
 
-    best_idx = int(np.argmax(sil_values))
-    best_k = k_values[best_idx]
-    best_sil = sil_values[best_idx]
+    best_sil_idx = int(np.argmax(sil_values))
+    best_sil_k = k_values[best_sil_idx]
+    best_sil = sil_values[best_sil_idx]
 
-    fig = plt.figure(figsize=(10, 6))
-    plt.plot(k_values, sil_values, 'o-')
-    plt.xlabel('Numero di cluster')
-    plt.ylabel('Silhouette Score')
-    plt.title(f'Valutazione del numero ottimale di cluster (k={best_k}, Silhouette={best_sil:.3f})')
-    plt.grid(True)
-    plt.tight_layout()
+    best_dbi_idx = int(np.argmin(dbi_values))
+    best_dbi_k = k_values[best_dbi_idx]
+    best_dbi = dbi_values[best_dbi_idx]
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Silhouette (asse sinistro)
+    line1 = ax1.plot(k_values, sil_values, 'o-', color='tab:blue', label='Silhouette Score')
+    ax1.set_xlabel('Numero di cluster (k)')
+    ax1.set_ylabel('Silhouette Score', color='tab:blue')
+    ax1.tick_params(axis='y', labelcolor='tab:blue')
+    ax1.grid(True, which='both', linestyle='--', alpha=0.4)
+
+    # Davies-Bouldin (asse destro)
+    ax2 = ax1.twinx()
+    line2 = ax2.plot(k_values, dbi_values, 's--', color='tab:red', label='Davies-Bouldin Index')
+    ax2.set_ylabel('Davies-Bouldin Index', color='tab:red')
+    ax2.tick_params(axis='y', labelcolor='tab:red')
+
+    # Legenda combinata
+    lines = line1 + line2
+    legend_labels: List[str] = [str(ln.get_label()) for ln in lines]
+    ax1.legend(lines, legend_labels, loc='best')
+
+    plt.title(
+        f'Analisi Silhouette & Davies-Bouldin Spectral Clustering (best Sil k={best_sil_k}, {best_sil:.3f}; '
+        f'best DBI k={best_dbi_k}, {best_dbi:.3f})'
+    )
+
+    fig.tight_layout()
     fig.savefig(fig_name)
     if show_fig:
         plt.show()
@@ -145,11 +172,11 @@ def run_spectral_clustering_pipeline(
         print(f"Report dettagliato generato: {report_detailed_path}")
 
     # Analisi del silhouette score per diversi numeri di cluster
-    silhouette_score_analysis_spectral_clustering(
+    sil_dbi_score_analysis_spectral_clustering(
         features_reduced,
         gamma=gamma,
         range_k=(2, 20),
-        fig_name=results_dir + "/silhouette_analysis_spectral_clustering.png",
+        fig_name=results_dir + "/sil_dbi_analysis_spectral_clustering.png",
     )
 
     return spectral_clustering_labels, sil, dbi
