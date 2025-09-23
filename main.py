@@ -41,7 +41,7 @@ KMEANS_PARAM_GRID = {
 }
 
 DBSCAN_PARAM_GRID = {
-    'eps': [7.0, 7.5, 9.0, 9.5],
+    'eps': [7.0, 7.5, 9.0, 9.5, 10.0],
     'min_samples': [3, 5],
     'metric': ['euclidean'],  # 'cosine' 'euclidean', 'manhattan', 'minkowski'
 }
