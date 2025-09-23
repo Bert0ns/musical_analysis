@@ -12,8 +12,8 @@ from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
 from lib.utils import param_product, fmt_float
 
-CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
-# CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
+#CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
+CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
 
 RESULTS_SC = "clustering_results/spectral_clustering"
@@ -41,8 +41,8 @@ KMEANS_PARAM_GRID = {
 }
 
 DBSCAN_PARAM_GRID = {
-    'eps': [8.0, 8.474, 9.0],
-    'min_samples': [3, 5, 10],
+    'eps': [7.0, 7.5, 9.0, 9.5],
+    'min_samples': [3, 5],
     'metric': ['euclidean'],  # 'cosine' 'euclidean', 'manhattan', 'minkowski'
 }
 
