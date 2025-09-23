@@ -2,9 +2,10 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import DBSCAN, HDBSCAN
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import MinMaxScaler
 
 from lib.utils import salva_risultati_markdown, computer_clustering_scores, plot_tsne_clustering, plot_clusters_results
 
@@ -23,6 +24,7 @@ def dbscan_clustering_classifier(features, eps=0.5, min_samples=5, metric='eucli
         model (DBSCAN): modello addestrato
     """
     model = DBSCAN(eps=eps, min_samples=min_samples, metric=metric, n_jobs=-1)
+    #model = HDBSCAN(min_cluster_size=min_samples, min_samples=min_samples, metric=metric, n_jobs=1, cluster_selection_method='eom', algorithm='auto', leaf_size=30, allow_single_cluster=False)
     labels = model.fit_predict(features)
     return labels, model
 
@@ -133,20 +135,28 @@ def sil_dbi_analysis_dbscan(features, eps_values, min_samples=5, metric='euclide
     return risultati
 
 
-def k_distance_plot_dbscan(features, k=5, fig_name='clustering_results/k_distance_dbscan.png', show_fig=False):
-    """Genera il k-distance plot (ordinando la distanza al k-esimo vicino) per aiutare a stimare eps.
+def k_distance_plot_dbscan(features, k=5, metric='euclidean',
+                           fig_name='clustering_results/k_distance_dbscan.png',
+                           show_fig=False):
+    """Genera il k-distance plot per stimare eps (esclude il punto stesso)."""
+    n = features.shape[0]
+    if n == 0:
+        return np.array([])
 
-    Suggerimento: il "gomito" della curva può indicare un buon valore di eps.
-    """
-    neigh = NearestNeighbors(n_neighbors=k)
+    # usa k+1 vicini per escludere il punto stesso (distanza 0)
+    k_eff = min(k + 1, n)
+    neigh = NearestNeighbors(n_neighbors=k_eff, metric=metric)
     neigh.fit(features)
     distances, _ = neigh.kneighbors(features)
-    # la distanza al k-esimo vicino è la colonna k-1 (ordinata successivamente)
-    k_dist = np.sort(distances[:, k-1])
+
+    # colonna del k-esimo vicino reale (escludendo self); fallback se k>=n
+    col = min(k, k_eff - 1)
+    k_dist = np.sort(distances[:, col])
+
     fig = plt.figure(figsize=(10, 6))
     plt.plot(k_dist)
     plt.xlabel('Punti ordinati')
-    plt.ylabel(f'Distanza al {k}-esimo vicino')
+    plt.ylabel(f'Distanza al {k}-esimo vicino (metrica: {metric})')
     plt.title(f'K-distance Plot (k={k}) per stima eps DBSCAN')
     plt.grid(True)
     plt.tight_layout()
@@ -168,6 +178,7 @@ def run_dbscan_clustering_pipeline(
         min_samples: int,
         metric: str,
         report_detailed: bool = False,
+        eps_values_to_compute_sil_and_dbi = np.linspace(0.1, 2.0, 25)
 ):
     """Esegue l'intera pipeline di DBSCAN e salva grafici/report.
 
@@ -176,17 +187,13 @@ def run_dbscan_clustering_pipeline(
     os.makedirs(results_dir, exist_ok=True)
 
     print("\nAnalisi esplorativa per DBSCAN (k-distance plot)...")
-    try:
-        k_distance_plot_dbscan(features_reduced, k=min_samples, fig_name=results_dir + "/k_distance_dbscan.png")
-    except Exception as e:
-        print(f"Errore k-distance plot DBSCAN: {e}")
+    k_distance_plot_dbscan(features_reduced, k=min_samples, metric=metric, fig_name=results_dir + "/k_distance_dbscan.png")
 
     print("Analisi silhouette su diversi eps per DBSCAN...")
-    eps_values = np.linspace(0.1, 2.0, 25)
     try:
         sil_dbi_analysis_dbscan(
             features_reduced,
-            eps_values,
+            eps_values_to_compute_sil_and_dbi,
             min_samples=min_samples,
             metric=metric,
             fig_name=results_dir + "/sil_dbi_analysis_dbscan.png",
@@ -247,10 +254,23 @@ def run_dbscan_clustering_pipeline(
     return dbscan_labels, dbscan_model, sil, dbi
 
 
+# --- Helper: scegli lo spazio per DBSCAN
+def choose_dbscan_space(features_reduced: np.ndarray, features_norm: np.ndarray, mode: str) -> np.ndarray:
+    if mode == 'normalized':
+        # Usa le feature normalizzate pre-PCA
+        return features_norm
+    elif mode == 'reduced_minmax':
+        # Riapplica MinMax alle componenti PCA
+        return MinMaxScaler().fit_transform(features_reduced)
+    else:  # 'reduced'
+        # Usa direttamente le componenti PCA
+        return features_reduced
+
 __all__ = [
     'dbscan_clustering_classifier',
     'trova_brani_rappresentativi_dbscan',
     'sil_dbi_analysis_dbscan',
     'k_distance_plot_dbscan',
     'run_dbscan_clustering_pipeline',
+    'choose_dbscan_space',
 ]

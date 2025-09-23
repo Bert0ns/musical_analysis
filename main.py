@@ -5,14 +5,15 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
-from lib.dbscan_clustering import run_dbscan_clustering_pipeline
+from lib.dbscan_clustering import run_dbscan_clustering_pipeline, choose_dbscan_space
 from lib.extract_data_features import get_audio_features
 from lib.extract_msd_h5_features import get_msd_h5_features
 from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
-from lib.utils import _param_product, _fmt_float
+from lib.utils import param_product, fmt_float
 
 CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
+# CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
 SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
 
 RESULTS_SC = "clustering_results/spectral_clustering"
@@ -31,32 +32,19 @@ DBSCAN_METRIC = 'euclidean'
 PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
 
 SPECTRAL_PARAM_GRID = {
-    'n_clusters': [4, 5, 6],
-    'gamma': [0.001, 0.002],
+    'n_clusters': [9, 10, 11],
+    'gamma': [0.001, 0.002, 0.003],
 }
 
 KMEANS_PARAM_GRID = {
-    'n_clusters': [7,8,9],
+    'n_clusters': [9, 10, 11],
 }
 
 DBSCAN_PARAM_GRID = {
-    'eps': [0.031, 0.034, 0.038],
-    'min_samples': [5, 8, 12, 18],
-    'metric': ['euclidean'],  # 'cosine'
+    'eps': [8.0, 8.474, 9.0],
+    'min_samples': [3, 5, 10],
+    'metric': ['euclidean'],  # 'cosine' 'euclidean', 'manhattan', 'minkowski'
 }
-
-
-# --- Helper: scegli lo spazio per DBSCAN
-def _choose_dbscan_space(features_reduced: np.ndarray, features_norm: np.ndarray, mode: str) -> np.ndarray:
-    if mode == 'normalized':
-        # Usa le feature normalizzate pre-PCA
-        return features_norm
-    elif mode == 'reduced_minmax':
-        # Riapplica MinMax alle componenti PCA
-        return MinMaxScaler().fit_transform(features_reduced)
-    else:  # 'reduced'
-        # Usa direttamente le componenti PCA
-        return features_reduced
 
 
 def grid_search_spectral(
@@ -76,10 +64,10 @@ def grid_search_spectral(
     with open(summary_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["n_clusters", "gamma", "n_clusters_found", "silhouette", "davies_bouldin", "results_dir"])
-        for params in _param_product(param_grid):
+        for params in param_product(param_grid):
             n_clusters = params['n_clusters']
             gamma = params['gamma']
-            run_dir = os.path.join(base_results_dir, f"grid_k{n_clusters}_g{_fmt_float(gamma)}")
+            run_dir = os.path.join(base_results_dir, f"grid_k{n_clusters}_g{fmt_float(gamma)}")
 
             labels, sil, dbi = run_spectral_clustering_pipeline(
                 filenames,
@@ -113,10 +101,10 @@ def grid_search_kmeans(
     with open(summary_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["n_clusters", "n_clusters_found", "silhouette", "davies_bouldin", "results_dir"])
-        for params in _param_product(param_grid):
+        for params in param_product(param_grid):
             n_clusters = params['n_clusters']
             run_dir = os.path.join(base_results_dir, f"grid_k{n_clusters}")
-            labels, _, sil, dbi= run_kmeans_clustering_pipeline(
+            labels, _, sil, dbi = run_kmeans_clustering_pipeline(
                 filenames,
                 features_reduced,
                 features_norm_original,
@@ -136,6 +124,7 @@ def grid_search_dbscan(
         features_norm_original,
         features_names,
         music_genres,
+        eps_values_to_compute_sil_and_dbi,
         base_results_dir: str = RESULTS_DBSCAN,
         param_grid: dict | None = None,
 ):
@@ -147,11 +136,11 @@ def grid_search_dbscan(
         writer = csv.writer(f)
         writer.writerow(["eps", "min_samples", "metric", "n_clusters_found", "noise_ratio", "silhouette_non_noise",
                          "davies_bouldin_non_noise", "results_dir"])
-        for params in _param_product(param_grid):
+        for params in param_product(param_grid):
             eps = params['eps']
             min_samples = params['min_samples']
             metric = params['metric']
-            run_dir = os.path.join(base_results_dir, f"grid_eps{_fmt_float(eps)}_min{min_samples}_{metric}")
+            run_dir = os.path.join(base_results_dir, f"grid_eps{fmt_float(eps)}_min{min_samples}_{metric}")
             labels, _, sil, dbi = run_dbscan_clustering_pipeline(
                 filenames,
                 features_reduced,
@@ -162,6 +151,7 @@ def grid_search_dbscan(
                 eps=eps,
                 min_samples=min_samples,
                 metric=metric,
+                eps_values_to_compute_sil_and_dbi=eps_values_to_compute_sil_and_dbi,
             )
             unique_valid = [c for c in np.unique(labels) if c != -1]
             noise_ratio = float(np.sum(labels == -1)) / float(len(labels)) if len(labels) else 0.0
@@ -188,7 +178,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--dbscan-space',
         choices=['reduced', 'reduced_minmax', 'normalized'],
-        default='reduced_minmax',
+        default='reduced',
         help='Spazio feature usato da DBSCAN'
     )
     # Scelta dello scaler per la normalizzazione delle feature
@@ -281,7 +271,7 @@ if __name__ == "__main__":
         # ============================= DBSCAN CLUSTERING =============================
         dbscan_labels, dbscan_model = run_dbscan_clustering_pipeline(
             filenames,
-            _choose_dbscan_space(features_reduced, features_norm_original, args.dbscan_space),
+            choose_dbscan_space(features_reduced, features_norm_original, args.dbscan_space),
             features_norm_original,
             features_names,
             music_genres,
@@ -318,12 +308,19 @@ if __name__ == "__main__":
             )
         if 'dbscan' in which:
             print("\n[GRID] Avvio grid search per DBSCAN...")
+
+            # get first value in this list DBSCAN_PARAM_GRID.get('eps') as a starting point, and stopping point take the last value
+            eps = DBSCAN_PARAM_GRID.get('eps', [])
+            start, stop = (eps[0], eps[-1]) if eps else (0.0, 0.0)
+            eps_values = np.linspace(min(start, stop), max(start, stop), num=20)
+
             grid_search_dbscan(
                 filenames,
-                _choose_dbscan_space(features_reduced, features_norm_original, args.dbscan_space),
+                choose_dbscan_space(features_reduced, features_norm_original, args.dbscan_space),
                 features_norm_original,
                 features_names,
                 music_genres,
+                eps_values_to_compute_sil_and_dbi=eps_values,
                 base_results_dir=RESULTS_DBSCAN,
                 param_grid=DBSCAN_PARAM_GRID,
             )

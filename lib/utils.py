@@ -239,12 +239,12 @@ def distribuzione_generi_per_cluster(labels, generi):
     return distribuzione, conteggio_genere_tot
 
 
-def _fmt_float(v: float) -> str:
+def fmt_float(v: float) -> str:
     s = f"{v}"
     return s.replace('.', 'p')
 
 
-def _param_product(grid: dict):
+def param_product(grid: dict):
     keys = list(grid.keys())
     for values in itertools.product(*[grid[k] for k in keys]):
         yield dict(zip(keys, values))
