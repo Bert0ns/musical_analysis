@@ -1,45 +1,45 @@
 """
-Script per generare figure illustrative del Davies-Bouldin Index (DBI).
+Script to generate illustrative figures for the Davies-Bouldin Index (DBI).
 
-Figure prodotte (cartella: figs_dbi/):
+Figures produced (folder: figs_dbi/):
 
 1. dbi_good_vs_bad.png
-   Confronto visivo tra un clustering "buono" (cluster compatti e separati) e uno "cattivo" (cluster sovrapposti / allungati). Riporta il valore del DBI in ciascun caso.
+    Visual comparison between a "good" clustering (compact, separated clusters) and a "bad" one (overlapping / elongated clusters). Shows DBI in each case.
 
 2. dbi_vs_k.png
-   Curva del Davies-Bouldin index al variare di k (K-Means). Illustra come k influisce su compattezza/separazione; valori più bassi indicano configurazioni migliori.
+    Davies-Bouldin curve over k (K-Means). Shows how k affects compactness/separation; lower values indicate better configurations.
 
 3. dbi_component_example.png
-   Esempio di calcolo concettuale: per un cluster i si mostra la dispersione intra-cluster (S_i) come cerchio medio, le distanze tra centroidi M_ij e si annota il valore R_ij = (S_i + S_j) / M_ij verso il cluster più “simile”.
+    Conceptual computation example: for a cluster i, shows intra-cluster dispersion (S_i) as a mean circle, centroid distances M_ij, and annotates R_ij = (S_i + S_j) / M_ij toward the most similar cluster.
 
 4. dbi_outliers_effect.png
-   Effetto degli outlier sul DBI: lo stesso dataset con e senza pochi punti estremi. Il DBI peggiora a causa dell’aumento della dispersione intra-cluster.
+    Outlier effect on DBI: same dataset with and without a few extreme points. DBI worsens due to increased intra-cluster dispersion.
 
 5. dbi_heatmap_k_pca.png
-   Heatmap del DBI per una griglia di (k, n_componenti PCA) per mostrare come la riduzione dimensionale influenzi la qualità secondo DBI.
+    DBI heatmap over a grid of (k, n_PCA_components) to show how dimensionality reduction affects DBI quality.
 
 6. dbi_manual_check.png
-   Confronto tra il DBI calcolato manualmente e quello di scikit-learn su più valori di k (verifica didattica).
+    Comparison between manually computed DBI and scikit-learn DBI across multiple k values (didactic check).
 
-Dipendenze:
+Dependencies:
   python 3.9+
   numpy
   matplotlib
   seaborn
   scikit-learn
 
-Installazione (se necessario):
+Install (if needed):
   pip install numpy matplotlib seaborn scikit-learn
 
-Esecuzione:
+Run:
   python generate_davies_bouldin_figures.py
 
-Note teoriche sintetiche:
+Concise theory notes:
   DBI = (1 / k) * Σ_i max_{j != i} R_ij
-  con R_ij = (S_i + S_j) / M_ij
-  S_i = (1 / |C_i|) * Σ_{x in C_i} ||x - μ_i||     (dispersione media del cluster i)
-  M_ij = || μ_i - μ_j ||                            (distanza tra centroidi)
-  Più basso è il DBI, migliore (cluster compatti e ben separati).
+  where R_ij = (S_i + S_j) / M_ij
+  S_i = (1 / |C_i|) * Σ_{x in C_i} ||x - μ_i||     (mean dispersion of cluster i)
+  M_ij = || μ_i - μ_j ||                            (distance between centroids)
+  Lower DBI is better (compact, well-separated clusters).
 """
 
 import os
@@ -61,24 +61,24 @@ OUT_DIR = "../figs/figs_dbi"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------
-# Funzioni di supporto
+# Helper functions
 # ---------------------------------------------------------------------
 
 def compute_dbi_manual(X, labels):
     """
-    Calcolo manuale del Davies-Bouldin Index per confronto didattico.
-    Assunzione: metrica euclidea.
+    Manual Davies-Bouldin Index computation for didactic comparison.
+    Assumption: Euclidean metric.
     """
     unique = np.unique(labels)
     k = unique.shape[0]
-    # Centroidi e dispersioni
+    # Centroids and dispersions
     centroids = []
     dispersions = []
     for c in unique:
         Xi = X[labels == c]
         mu = Xi.mean(axis=0)
         centroids.append(mu)
-        # dispersione media (L2)
+        # mean dispersion (L2)
         Si = np.mean(np.linalg.norm(Xi - mu, axis=1))
         dispersions.append(Si)
     centroids = np.vstack(centroids)
@@ -93,7 +93,7 @@ def compute_dbi_manual(X, labels):
             else:
                 Mij = np.linalg.norm(centroids[i] - centroids[j])
                 Rij[i, j] = (dispersions[i] + dispersions[j]) / (Mij + 1e-12)
-    # Per ogni i, prendi max_j
+    # For each i, take max_j
     Ri = np.max(Rij, axis=1)
     DBI = np.mean(Ri)
     return DBI, centroids, dispersions, Rij
@@ -123,7 +123,7 @@ def scatter_clusters(X, labels, ax, title="", palette="tab10"):
     ax.legend(loc="best", fontsize=7, frameon=True)
 
 # ---------------------------------------------------------------------
-# Figura 1: Buono vs Cattivo clustering
+# Figure 1: Good vs bad clustering
 # ---------------------------------------------------------------------
 def fig_dbi_good_vs_bad():
     X_good = create_well_separated()
@@ -139,16 +139,16 @@ def fig_dbi_good_vs_bad():
     dbi_bad = davies_bouldin_score(X_bad, labels_bad)
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    scatter_clusters(X_good, labels_good, axes[0], title=f"Clustering ben separato (DBI={dbi_good:.2f})")
-    scatter_clusters(X_bad, labels_bad, axes[1], title=f"Clustering sovrapposto (DBI={dbi_bad:.2f})")
+    scatter_clusters(X_good, labels_good, axes[0], title=f"Well-separated clustering (DBI={dbi_good:.2f})")
+    scatter_clusters(X_bad, labels_bad, axes[1], title=f"Overlapping clustering (DBI={dbi_bad:.2f})")
 
-    fig.suptitle("Davies-Bouldin: confronto visivo buono vs cattivo", y=0.98)
+    fig.suptitle("Davies-Bouldin: visual comparison good vs bad", y=0.98)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(os.path.join(OUT_DIR, "dbi_good_vs_bad.png"), dpi=170)
     plt.close(fig)
 
 # ---------------------------------------------------------------------
-# Figura 2: DBI vs k
+# Figure 2: DBI vs k
 # ---------------------------------------------------------------------
 def fig_dbi_vs_k():
     X = create_well_separated()
@@ -164,17 +164,17 @@ def fig_dbi_vs_k():
     best_k = list(ks)[int(np.argmin(dbi_vals))]
     best_val = np.min(dbi_vals)
     ax.axvline(best_k, color="green", linestyle="--", alpha=0.7,
-               label=f"Min DBI a k={best_k} ({best_val:.2f})")
-    ax.set_xlabel("Numero di cluster k")
-    ax.set_ylabel("Davies-Bouldin Index (↓ meglio)")
-    ax.set_title("Andamento del DBI al variare di k")
+               label=f"Min DBI at k={best_k} ({best_val:.2f})")
+    ax.set_xlabel("Number of clusters k")
+    ax.set_ylabel("Davies-Bouldin Index (lower is better)")
+    ax.set_title("DBI over k")
     ax.legend()
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "dbi_vs_k.png"), dpi=170)
     plt.close(fig)
 
 # ---------------------------------------------------------------------
-# Figura 3: Componenti di DBI (R_ij) e dispersioni
+# Figure 3: DBI components (R_ij) and dispersions
 # ---------------------------------------------------------------------
 def fig_dbi_component_example():
     X = create_well_separated()
@@ -183,26 +183,26 @@ def fig_dbi_component_example():
     labels = km.fit_predict(X)
     dbi, centroids, dispersions, Rij = compute_dbi_manual(X, labels)
 
-    # Scegliamo un cluster i e il j che massimizza R_ij
+    # Pick a cluster i and the j that maximizes R_ij
     i = 0
     j = np.argmax(Rij[i])
 
     fig, ax = plt.subplots(figsize=(5.5, 4.8))
-    scatter_clusters(X, labels, ax, title=f"Esempio componenti DBI (DBI globale={dbi:.2f})")
+    scatter_clusters(X, labels, ax, title=f"DBI components example (global DBI={dbi:.2f})")
 
-    # Cerchio per dispersione S_i
+    # Circle for dispersion S_i
     Si = dispersions[i]
     circ_i = Circle(centroids[i], radius=Si, facecolor="none", edgecolor="red", linestyle="--", linewidth=1.2)
     ax.add_patch(circ_i)
     ax.text(centroids[i,0], centroids[i,1]-1.5*Si, f"S_i={Si:.2f}", color="red", ha="center", fontsize=8)
 
-    # Cerchio per dispersione S_j
+    # Circle for dispersion S_j
     Sj = dispersions[j]
     circ_j = Circle(centroids[j], radius=Sj, facecolor="none", edgecolor="purple", linestyle="--", linewidth=1.2)
     ax.add_patch(circ_j)
     ax.text(centroids[j,0], centroids[j,1]-1.5*Sj, f"S_j={Sj:.2f}", color="purple", ha="center", fontsize=8)
 
-    # Linea tra centroidi
+    # Line between centroids
     ax.plot([centroids[i,0], centroids[j,0]], [centroids[i,1], centroids[j,1]],
             color="black", linewidth=1.0, linestyle=":")
     Mij = np.linalg.norm(centroids[i] - centroids[j])
@@ -214,13 +214,13 @@ def fig_dbi_component_example():
             fontsize=8, color="black", ha="center", va="center",
             bbox=dict(facecolor="white", alpha=0.6, edgecolor="none"))
 
-    ax.set_title("Dispersioni (S_i, S_j) e distanza centroidi (M_ij)\nContributo R_ij = (S_i+S_j)/M_ij", fontsize=10)
+    ax.set_title("Dispersions (S_i, S_j) and centroid distance (M_ij)\nContribution R_ij = (S_i+S_j)/M_ij", fontsize=10)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "dbi_component_example.png"), dpi=170)
     plt.close(fig)
 
 # ---------------------------------------------------------------------
-# Figura 4: Effetto outlier
+# Figure 4: Outlier effect
 # ---------------------------------------------------------------------
 def fig_dbi_outliers_effect():
     X = create_well_separated()
@@ -230,7 +230,7 @@ def fig_dbi_outliers_effect():
     labels_clean = km_clean.fit_predict(X)
     dbi_clean = davies_bouldin_score(X, labels_clean)
 
-    # Aggiungiamo outlier
+    # Add outliers
     n_out = 25
     outliers = np.random.uniform(low=-10, high=10, size=(n_out, X.shape[1]))
     X_out = np.vstack([X, outliers])
@@ -239,26 +239,26 @@ def fig_dbi_outliers_effect():
     dbi_out = davies_bouldin_score(X_out, labels_out)
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    scatter_clusters(X, labels_clean, axes[0], title=f"Senza outlier (DBI={dbi_clean:.2f})")
-    scatter_clusters(X_out, labels_out, axes[1], title=f"Con outlier (DBI={dbi_out:.2f})")
+    scatter_clusters(X, labels_clean, axes[0], title=f"Without outliers (DBI={dbi_clean:.2f})")
+    scatter_clusters(X_out, labels_out, axes[1], title=f"With outliers (DBI={dbi_out:.2f})")
     for ax in axes:
         ax.set_xlim(-4, 4); ax.set_ylim(-4, 4)
-    fig.suptitle("Effetto degli outlier sul Davies-Bouldin Index", y=0.98)
+    fig.suptitle("Outlier effect on Davies-Bouldin Index", y=0.98)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(os.path.join(OUT_DIR, "dbi_outliers_effect.png"), dpi=170)
     plt.close(fig)
 
 # ---------------------------------------------------------------------
-# Figura 5: Heatmap DBI (k vs PCA components)
+# Figure 5: DBI heatmap (k vs PCA components)
 # ---------------------------------------------------------------------
 def fig_dbi_heatmap_k_pca():
-    # Dataset più “largo” con rumore
+    # Wider dataset with noise
     X, _ = make_blobs(n_samples=1200,
                       centers=[(-4, -3), (-1, 3), (2.5, -1), (5, 3)],
                       cluster_std=[0.55, 0.6, 0.5, 0.6],
                       random_state=RANDOM_STATE)
     X = StandardScaler().fit_transform(X)
-    # Aggiungo feature ridondanti + rumore
+    # Add redundant features + noise
     noise = 0.2 * np.random.randn(X.shape[0], 8)
     Xw = np.hstack([X, noise, X[:, :2] * 0.3])
 
@@ -276,17 +276,17 @@ def fig_dbi_heatmap_k_pca():
             heat[i, j] = dbi
 
     fig, ax = plt.subplots(figsize=(7.2, 4.6))
-    sns.heatmap(heat, annot=True, fmt=".2f", cmap="viridis", cbar_kws={"label": "DBI (↓ meglio)"},
+    sns.heatmap(heat, annot=True, fmt=".2f", cmap="viridis", cbar_kws={"label": "DBI (lower is better)"},
                 xticklabels=k_values, yticklabels=pca_components, ax=ax)
     ax.set_xlabel("k")
-    ax.set_ylabel("Componenti PCA")
-    ax.set_title("Heatmap Davies-Bouldin: effetto di k e riduzione dimensionale")
+    ax.set_ylabel("PCA components")
+    ax.set_title("Davies-Bouldin heatmap: effect of k and dimensionality reduction")
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "dbi_heatmap_k_pca.png"), dpi=170)
     plt.close(fig)
 
 # ---------------------------------------------------------------------
-# Figura 6: Confronto manuale vs scikit-learn
+# Figure 6: Manual vs scikit-learn comparison
 # ---------------------------------------------------------------------
 def fig_dbi_manual_check():
     X = create_well_separated()
@@ -304,10 +304,10 @@ def fig_dbi_manual_check():
 
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.plot(ks, sklearn_vals, marker="o", label="scikit-learn")
-    ax.plot(ks, manual_vals, marker="s", linestyle="--", label="manuale")
+    ax.plot(ks, manual_vals, marker="s", linestyle="--", label="manual")
     ax.set_xlabel("k")
     ax.set_ylabel("DBI")
-    ax.set_title("Verifica calcolo DBI manuale vs scikit-learn")
+    ax.set_title("Manual DBI check vs scikit-learn")
     ax.legend()
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "dbi_manual_check.png"), dpi=170)
@@ -317,29 +317,29 @@ def fig_dbi_manual_check():
 # MAIN
 # ---------------------------------------------------------------------
 def main():
-    print("Generazione figure Davies-Bouldin...")
+    print("Generating Davies-Bouldin figures...")
     fig_dbi_good_vs_bad()
     fig_dbi_vs_k()
     fig_dbi_component_example()
     fig_dbi_outliers_effect()
     fig_dbi_heatmap_k_pca()
     fig_dbi_manual_check()
-    print(f"Figure salvate in: {OUT_DIR}")
+        print(f"Figures saved to: {OUT_DIR}")
 
-    print("\nDidascalie suggerite (adatta numerazione in tesi):\n")
+        print("\nSuggested captions (adjust numbering in thesis):\n")
     captions = [
         ("dbi_good_vs_bad.png",
-         "Figura DBI.1: Confronto tra clustering ben separato (DBI basso) e clustering sovrapposto (DBI alto). Cluster compatti e distanti riducono l'indice."),
+            "Figure DBI.1: Comparison between well-separated clustering (low DBI) and overlapping clustering (high DBI). Compact, distant clusters reduce the index."),
         ("dbi_vs_k.png",
-         "Figura DBI.2: Andamento del Davies-Bouldin al variare di k. Il minimo relativo individua una configurazione più equilibrata per compattezza e separazione."),
+            "Figure DBI.2: Davies-Bouldin over k. A relative minimum indicates a more balanced configuration for compactness and separation."),
         ("dbi_component_example.png",
-         "Figura DBI.3: Illustrazione delle componenti di DBI: dispersioni intra-cluster (S_i, S_j) e distanza fra centroidi (M_ij). Il rapporto R_ij = (S_i+S_j)/M_ij influenza il massimo per il cluster i."),
+            "Figure DBI.3: Illustration of DBI components: intra-cluster dispersions (S_i, S_j) and centroid distance (M_ij). The ratio R_ij = (S_i+S_j)/M_ij influences the max for cluster i."),
         ("dbi_outliers_effect.png",
-         "Figura DBI.4: Effetto degli outlier: pochi punti estremi aumentano la dispersione intra-cluster e peggiorano il DBI."),
+            "Figure DBI.4: Outlier effect: a few extreme points increase intra-cluster dispersion and worsen DBI."),
         ("dbi_heatmap_k_pca.png",
-         "Figura DBI.5: Heatmap del DBI per combinazioni di k e numero di componenti PCA. Evidenzia regioni parametriche più favorevoli (DBI più basso)."),
+            "Figure DBI.5: DBI heatmap for combinations of k and number of PCA components. Highlights more favorable parameter regions (lower DBI)."),
         ("dbi_manual_check.png",
-         "Figura DBI.6: Verifica del calcolo manuale del DBI rispetto all'implementazione scikit-learn: le curve coincidono entro differenze numeriche trascurabili.")
+            "Figure DBI.6: Manual DBI calculation vs scikit-learn implementation: curves match within negligible numerical differences.")
     ]
     for fname, cap in captions:
         print(f"- {fname}: {cap}")

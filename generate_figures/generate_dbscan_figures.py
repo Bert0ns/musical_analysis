@@ -1,41 +1,41 @@
 """
-Generazione figure per illustrare DBSCAN.
+Generate figures to illustrate DBSCAN.
 
-Figure prodotte:
+Figures produced:
 
 1. dbscan_core_border_noise.png
-   - Visualizza un dataset con cluster + rumore evidenziando punti core, border e noise.
+    - Visualizes a dataset with clusters + noise, highlighting core, border, and noise points.
 
 2. dbscan_eps_variation.png
-   - Mostra l'effetto di eps variando eps (min_samples fisso).
+    - Shows the effect of eps while varying eps (min_samples fixed).
 
 3. dbscan_min_samples_variation.png
-   - Mostra l'effetto di min_samples variando min_samples (eps fisso).
+    - Shows the effect of min_samples while varying min_samples (eps fixed).
 
 4. dbscan_k_distance_plot.png
-   - K-distance plot (distanza al k-esimo vicino) con stima "ginocchiata" per suggerire eps.
+    - K-distance plot (distance to k-th neighbor) with knee estimation to suggest eps.
 
 5. dbscan_variable_density.png
-   - Dataset a densità variabile: fallimento di un singolo eps (cluster uno unito o cluster sparsi/noise).
+    - Variable-density dataset: failure of a single eps (merged clusters or sparse/noise clusters).
 
 6. dbscan_param_grid_heatmap.png
-   - Heatmap silhouette media (solo punti non-noise) su una griglia (eps, min_samples).
+    - Heatmap of mean silhouette (non-noise points only) over a grid (eps, min_samples).
 
-Dipendenze:
+Dependencies:
 - Python 3.9+
 - numpy
 - scikit-learn
 - matplotlib
-- seaborn (solo per heatmap)
-- kneed (facoltativo; se non presente viene usato un fallback semplice per stimare il knee)
+- seaborn (only for heatmap)
+- kneed (optional; if missing, a simple fallback is used to estimate the knee)
 
-Installazione pacchetti (esempio):
+Package install (example):
 pip install numpy scikit-learn matplotlib seaborn kneed
 
-Esecuzione:
+Run:
 python generate_dbscan_figures.py
 
-Le immagini vengono salvate nella cartella figs_dbscan/.
+Images are saved to figs_dbscan/.
 """
 
 import os
@@ -44,7 +44,7 @@ import numpy as np
 import matplotlib
 from numpy.ma.extras import apply_along_axis
 
-matplotlib.use('Agg')  # Usa backend non interattivo
+matplotlib.use('Agg')  # Use a non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import pyplot
@@ -61,13 +61,13 @@ np.random.seed(RANDOM_STATE)
 OUT_DIR = "../figs/figs_dbscan"
 os.makedirs(OUT_DIR, exist_ok=True)
 
-# ---------- Utility ----------
+# ---------- Utilities ----------
 
 def scatter_dbscan(X, labels, title="", ax=None, core_samples_mask=None):
     """
-    Visualizza i risultati DBSCAN.
-    - labels: etichette cluster con -1 per noise.
-    - core_samples_mask: boolean array per i punti core (True se core).
+    Visualize DBSCAN results.
+    - labels: cluster labels with -1 for noise.
+    - core_samples_mask: boolean array for core points (True if core).
     """
     if ax is None:
         ax = plt.gca()
@@ -75,14 +75,14 @@ def scatter_dbscan(X, labels, title="", ax=None, core_samples_mask=None):
     unique_labels = np.unique(labels)
     palette = pyplot.get_cmap("tab10", len(unique_labels))
 
-    # Se non fornita maschera core, consideriamo tutti non-core
+    # If no core mask is provided, treat all as non-core
     if core_samples_mask is None:
         core_samples_mask = np.zeros_like(labels, dtype=bool)
 
     for idx, lbl in enumerate(unique_labels):
         class_member_mask = labels == lbl
         if lbl == -1:
-            # noise in grigio
+            # noise in gray
             col = (0.55, 0.55, 0.55, 0.6)
         else:
             col = palette(idx)
@@ -101,7 +101,7 @@ def scatter_dbscan(X, labels, title="", ax=None, core_samples_mask=None):
                        s=20, c=[col], marker="o", edgecolor="none", alpha=0.55,
                        label=f"Cluster {lbl} border" if lbl != -1 else "Noise")
 
-    # Evita doppioni in legenda
+    # Avoid duplicate legend entries
     handles, labels_leg = ax.get_legend_handles_labels()
     legend_clean = []
     seen = set()
@@ -162,30 +162,30 @@ def fig_core_border_noise():
                       centers=[(-4, -2), (-1, 2), (2.5, -1)],
                       cluster_std=[0.6, 0.9, 0.5],
                       random_state=RANDOM_STATE)
-    # Aggiungiamo rumore sparso
+    # Add scattered noise
     noise = np.random.uniform(low=-6, high=4, size=(50, 2))
     X = np.vstack([X, noise])
     X = StandardScaler().fit_transform(X)
 
-    # Parametri scelti per distinguere cluster e identificare noise
+    # Parameters chosen to separate clusters and identify noise
     eps = 0.35
     min_samples = 8
     db = DBSCAN(eps=eps, min_samples=min_samples, metric="euclidean", n_jobs=-1)
     labels = db.fit_predict(X)
     core_mask = compute_core_samples_mask(db, X.shape[0])
 
-    # Mappa colori: 0=viola, 1=arancione, 2=azzurro, -1=grigio
+    # Color map: 0=purple, 1=orange, 2=light blue, -1=gray
     cluster_colors = {
-        0: (148/255, 0/255, 211/255),     # viola
-        1: (255/255, 140/255, 0/255),     # arancione
-        2: (30/255, 144/255, 255/255),    # azzurro
-        -1: (0.55, 0.55, 0.55, 0.6)       # noise (grigio)
+        0: (148/255, 0/255, 211/255),     # purple
+        1: (255/255, 140/255, 0/255),     # orange
+        2: (30/255, 144/255, 255/255),    # light blue
+        -1: (0.55, 0.55, 0.55, 0.6)       # noise (gray)
     }
 
     fig, ax = plt.subplots(figsize=(5.2, 4.2))
     custom_scatter_dbscan(
         X, labels,
-        title=f"Core, border e noise (DBSCAN) | eps={eps}, min_samples={min_samples}",
+        title=f"Core, border, and noise (DBSCAN) | eps={eps}, min_samples={min_samples}",
         cluster_colors=cluster_colors,
         ax=ax, core_samples_mask=core_mask
     )
@@ -193,7 +193,7 @@ def fig_core_border_noise():
     fig.savefig(os.path.join(OUT_DIR, "dbscan_core_border_noise.png"), dpi=170)
     plt.close(fig)
 
-# ---------- Figure 2: Variazione eps (min_samples fisso) ----------
+# ---------- Figure 2: eps variation (min_samples fixed) ----------
 
 def fig_eps_variation():
     X, _ = make_blobs(n_samples=600,
@@ -225,12 +225,12 @@ def fig_eps_variation():
         title = f"eps={eps:.2f} | cluster={n_clusters} | silhouette={sil:.2f}" if not np.isnan(sil) else f"eps={eps:.2f} | cluster={n_clusters}"
         scatter_dbscan(X, labels, title=title, ax=ax, core_samples_mask=core_mask)
 
-    fig.suptitle(f"Influenza di eps (min_samples={min_samples})", y=0.99)
+    fig.suptitle(f"Effect of eps (min_samples={min_samples})", y=0.99)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     fig.savefig(os.path.join(OUT_DIR, "dbscan_eps_variation.png"), dpi=170)
     plt.close(fig)
 
-# ---------- Figure 3: Variazione min_samples (eps fisso) ----------
+# ---------- Figure 3: min_samples variation (eps fixed) ----------
 
 def fig_min_samples_variation():
     X, _ = make_blobs(n_samples=600,
@@ -260,20 +260,20 @@ def fig_min_samples_variation():
         title = f"min_samples={ms} | cluster={n_clusters} | silhouette={sil:.2f}" if not np.isnan(sil) else f"min_samples={ms} | cluster={n_clusters}"
         scatter_dbscan(X, labels, title=title, ax=ax, core_samples_mask=core_mask)
 
-    fig.suptitle(f"Influenza di min_samples (eps={eps})", y=0.99)
+    fig.suptitle(f"Effect of min_samples (eps={eps})", y=0.99)
     fig.tight_layout(rect=[0, 0, 1, 0.97])
     fig.savefig(os.path.join(OUT_DIR, "dbscan_min_samples_variation.png"), dpi=170)
     plt.close(fig)
 
-# ---------- Figure 4: k-distance plot (stima eps) ----------
+# ---------- Figure 4: k-distance plot (eps estimate) ----------
 
 def knee_index(y):
     """
-    Ritorna un indice 'ginocchiata' semplice usando la massima distanza
-    di ogni punto dalla corda (primo-ultimo) nel grafico (metodo geometrico).
+    Return a simple knee index using the maximum distance
+    from each point to the chord (first-last) in the plot (geometric method).
     """
     x = np.arange(len(y))
-    # retta fra primo e ultimo
+    # Line between first and last
     p1 = np.array([x[0], y[0]], dtype=float)
     p2 = np.array([x[-1], y[-1]], dtype=float)
     line_vec = p2 - p1
@@ -295,33 +295,33 @@ def fig_k_distance_plot():
     X = StandardScaler().fit_transform(X)
 
     min_samples = 8
-    k = min_samples  # spesso si usa k = min_samples
+    k = min_samples  # often use k = min_samples
     nbrs = NearestNeighbors(n_neighbors=k).fit(X)
     distances, _ = nbrs.kneighbors(X)
-    # prendiamo la distanza all'ultimo vicino (k-esimo)
+    # Take distance to the last neighbor (k-th)
     k_dists = distances[:, -1]
     k_dists_sorted = np.sort(k_dists)
 
-    # Stima ginocchiata
+    # Knee estimate
     idx_knee = knee_index(k_dists_sorted)
     eps_est = k_dists_sorted[idx_knee]
 
     fig, ax = plt.subplots(figsize=(6.0, 4.2))
     ax.plot(k_dists_sorted, linewidth=1.2)
-    ax.axvline(idx_knee, color="tomato", linestyle="--", label=f"indice knee={idx_knee}")
-    ax.axhline(eps_est, color="green", linestyle="--", label=f"eps stimato≈{eps_est:.3f}")
+    ax.axvline(idx_knee, color="tomato", linestyle="--", label=f"knee index={idx_knee}")
+    ax.axhline(eps_est, color="green", linestyle="--", label=f"estimated eps≈{eps_est:.3f}")
     ax.set_title(f"k-distance plot (k={k})")
-    ax.set_xlabel("Punti ordinati")
-    ax.set_ylabel(f"Distanza al {k}-esimo vicino")
+    ax.set_xlabel("Sorted points")
+    ax.set_ylabel(f"Distance to {k}-th neighbor")
     ax.legend()
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "dbscan_k_distance_plot.png"), dpi=170)
     plt.close(fig)
 
-# ---------- Figure 5: Densità variabile ----------
+# ---------- Figure 5: Variable density ----------
 
 def fig_variable_density():
-    # Creiamo cluster con densità molto diversa
+    # Create clusters with very different densities
     X1, _ = make_blobs(n_samples=500, centers=[(-2, -2)], cluster_std=0.30, random_state=RANDOM_STATE)
     X2, _ = make_blobs(n_samples=300, centers=[(2, -1)], cluster_std=0.80, random_state=RANDOM_STATE)
     X3, _ = make_blobs(n_samples=200, centers=[(0, 2.5)], cluster_std=1.10, random_state=RANDOM_STATE)
@@ -339,7 +339,7 @@ def fig_variable_density():
         n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
         scatter_dbscan(X, labels, title=f"eps={eps} | cluster={n_clusters}", ax=ax, core_samples_mask=core_mask)
 
-    fig.suptitle("Dataset a densità variabile: un singolo eps è subottimale", y=0.97)
+    fig.suptitle("Variable-density dataset: a single eps is suboptimal", y=0.97)
     fig.tight_layout(rect=[0, 0, 1, 0.95])
     fig.savefig(os.path.join(OUT_DIR, "dbscan_variable_density.png"), dpi=170)
     plt.close(fig)
@@ -362,7 +362,7 @@ def fig_param_grid_heatmap():
         for j, eps in enumerate(eps_grid):
             db = DBSCAN(eps=eps, min_samples=ms, n_jobs=-1)
             labels = db.fit_predict(X)
-            # Calcoliamo silhouette sui soli non-noise se almeno due cluster
+            # Compute silhouette on non-noise points only if at least two clusters
             mask = labels != -1
             unique_valid = np.unique(labels[mask])
             if unique_valid.size > 1 and mask.sum() > len(unique_valid):
@@ -377,13 +377,13 @@ def fig_param_grid_heatmap():
                 yticklabels=min_samples_grid, ax=ax, cbar_kws={"label": "Silhouette (non-noise)"})
     ax.set_xlabel("eps")
     ax.set_ylabel("min_samples")
-    ax.set_title("Silhouette media vs eps e min_samples")
-    # Evidenzia il massimo
+    ax.set_title("Mean silhouette vs eps and min_samples")
+    # Highlight the maximum
     if np.isfinite(heat).any():
         max_idx = np.nanargmax(heat)
         mi, mj = np.unravel_index(max_idx, heat.shape)
         ax.scatter(mj + 0.5, mi + 0.5, color="red", marker="o", s=60, linewidth=1.2,
-                   edgecolor="white", label="Massimo")
+                   edgecolor="white", label="Maximum")
         ax.legend(loc="upper right", fontsize=8)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "dbscan_param_grid_heatmap.png"), dpi=170)
@@ -396,7 +396,7 @@ def main():
     fig_k_distance_plot()
     fig_variable_density()
     fig_param_grid_heatmap()
-    print(f"Figure salvate in: {OUT_DIR}")
+    print(f"Figures saved to: {OUT_DIR}")
 
 if __name__ == "__main__":
     main()

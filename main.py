@@ -12,36 +12,36 @@ from lib.k_means_clustering import run_kmeans_clustering_pipeline
 from lib.spectral_clustering import run_spectral_clustering_pipeline
 from lib.utils import param_product, fmt_float
 
-#CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
-CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
-SONGS_DIR = "dataset/songs"  # Cambia con il percorso della tua cartella di canzoni
+#CSV_FEATURE_FILENAME = "dataset/GTZAN/GTZAN_features.csv"
+CSV_FEATURE_FILENAME = "dataset/songs_features/songs_features_all.csv"
+SONGS_DIR = "dataset/songs"  # Change to the path of your songs folder
 
 RESULTS_SC = "clustering_results/spectral_clustering"
 RESULTS_KM = "clustering_results/kmeans"
 RESULTS_DBSCAN = "clustering_results/dbscan"
 
-N_CLUSTERS = 5  # Numero di cluster da creare
-SPECTRAL_CLUSTERING_GAMMA = 0.2  # Parametro gamma per lo spectral clustering
+N_CLUSTERS = 5  # Number of clusters to create
+SPECTRAL_CLUSTERING_GAMMA = 0.2  # Gamma parameter for spectral clustering
 
-# Parametri DBSCAN (valori di default, puoi regolarli dopo aver guardato i grafici)
+# DBSCAN parameters (defaults, tune after reviewing plots)
 DBSCAN_EPS = 0.7
 DBSCAN_MIN_SAMPLES = 8
 DBSCAN_METRIC = 'euclidean'
 
-# ===================== PARAM GRID (valori esempio, modifica liberamente) =====================
-PCA_COMPONENTS = 0.98  # Percentuale di varianza da mantenere con PCA
+# ===================== PARAM GRID (example values, adjust freely) =====================
+PCA_COMPONENTS = 0.98  # Variance ratio to keep with PCA
 
 SPECTRAL_PARAM_GRID = {
-    'n_clusters': [9, 10, 11],
-    'gamma': [0.001, 0.002, 0.003],
+    'n_clusters': [9, 11],
+    'gamma': [0.001, 0.003],
 }
 
 KMEANS_PARAM_GRID = {
-    'n_clusters': [9, 10, 11],
+    'n_clusters': [9, 11],
 }
 
 DBSCAN_PARAM_GRID = {
-    'eps': [7.0, 7.5, 9.0, 9.5, 10.0],
+    'eps': [7.0, 7.5, 9.0],
     'min_samples': [3, 5],
     'metric': ['euclidean'],  # 'cosine' 'euclidean', 'manhattan', 'minkowski'
 }
@@ -82,7 +82,7 @@ def grid_search_spectral(
             unique_cls = len(np.unique(labels))
 
             writer.writerow([n_clusters, gamma, unique_cls, f"{sil:.6f}", f"{dbi:.6f}", run_dir])
-    print(f"Riepilogo grid Spectral scritto in: {summary_path}")
+    print(f"Spectral grid summary written to: {summary_path}")
 
 
 def grid_search_kmeans(
@@ -115,7 +115,7 @@ def grid_search_kmeans(
             )
             unique_cls = len(np.unique(labels))
             writer.writerow([n_clusters, unique_cls, f"{sil:.6f}", f"{dbi:.6f}", run_dir])
-    print(f"Riepilogo grid K-Means scritto in: {summary_path}")
+    print(f"K-Means grid summary written to: {summary_path}")
 
 
 def grid_search_dbscan(
@@ -164,51 +164,51 @@ def grid_search_dbscan(
                 dbi_s = "N/A"
 
             writer.writerow([eps, min_samples, metric, len(unique_valid), f"{noise_ratio:.6f}", sil_s, dbi_s, run_dir])
-    print(f"Riepilogo grid DBSCAN scritto in: {summary_path}")
+    print(f"DBSCAN grid summary written to: {summary_path}")
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Clustering musicale - esecuzione singola o grid search parametri")
+    parser = argparse.ArgumentParser(description="Music clustering - single run or parameter grid search")
     parser.add_argument('--mode', choices=['single', 'grid'], default='single',
-                        help='single: esegue una volta con i parametri di default; grid: testa combinazioni di parametri')
+                        help='single: run once with default parameters; grid: test parameter combinations')
     parser.add_argument('--which', nargs='*', choices=['spectral', 'kmeans', 'dbscan'],
-                        help='Se in modalità grid, limita agli algoritmi indicati')
+                        help='When in grid mode, limit to the selected algorithms')
     parser.add_argument(
         '--dbscan-space',
         choices=['reduced', 'reduced_minmax', 'normalized'],
         default='reduced',
-        help='Spazio feature usato da DBSCAN'
+        help='Feature space used by DBSCAN'
     )
-    # Scelta dello scaler per la normalizzazione delle feature
+    # Feature scaling selection
     parser.add_argument('--scaler', choices=['minmax', 'standard'], default='minmax',
-                        help='Seleziona lo scaler per la normalizzazione: minmax (default) o standard')
-    # Nuovo: numero di processi per l'estrazione feature audio
+                        help='Select feature scaling: minmax (default) or standard')
+    # Number of processes for audio feature extraction
     parser.add_argument('--workers', type=int, default=1,
-                        help='Numero di processi per estrazione feature audio (default: 1)')
-    # NUOVI ARGOMENTI per usare le feature del Million Song Dataset
+                        help='Number of processes for audio feature extraction (default: 1)')
+    # Arguments for Million Song Dataset features
     parser.add_argument('--feature-source', choices=['audio', 'msd'], default='audio',
-                        help='Origine delle feature: audio locale (librosa) oppure msd (file .h5)')
-    parser.add_argument('--msd-root', type=str, default=None, help='Cartella radice dei file .h5 MSD')
+                        help='Feature source: local audio (librosa) or msd (.h5 files)')
+    parser.add_argument('--msd-root', type=str, default=None, help='Root folder containing MSD .h5 files')
     parser.add_argument('--msd-csv', type=str, default='dataset/songs_features/msd_h5_features.csv',
-                        help='CSV cache per feature MSD')
+                        help='CSV cache for MSD features')
     parser.add_argument('--msd-titles-file', type=str, default=None,
-                        help='File mapping track_id<SEP>song_id<SEP>artist_name<SEP>song_title')
-    parser.add_argument('--msd-max-files', type=int, default=None, help='Limita numero di file .h5 (debug)')
+                        help='Mapping file track_id<SEP>song_id<SEP>artist_name<SEP>song_title')
+    parser.add_argument('--msd-max-files', type=int, default=None, help='Limit number of .h5 files (debug)')
     args = parser.parse_args()
 
-    # ================= CARICAMENTO FEATURE =================
+    # ================= FEATURE LOADING =================
     if args.feature_source == 'audio':
-        print("Caricamento delle feature audio (estrazione locale/librosa)...")
+        print("Loading audio features (local extraction/librosa)...")
         filenames, music_genres, features, features_names = get_audio_features(SONGS_DIR, CSV_FEATURE_FILENAME,
                                                                                n_jobs=args.workers)
         source_label = 'audio'
     else:
         if args.msd_root is None and args.msd_csv is None:
-            raise ValueError("Per usare le feature MSD, specificare --msd-root e/o --msd-csv")
+            raise ValueError("To use MSD features, specify --msd-root and/or --msd-csv")
 
-        print("Caricamento / estrazione feature MSD (.h5)...")
+        print("Loading / extracting MSD features (.h5)...")
         filenames, artist_names, features, features_names = get_msd_h5_features(
             args.msd_root,
             args.msd_csv,
@@ -216,33 +216,33 @@ if __name__ == "__main__":
             verbose=False,
             titles_file=args.msd_titles_file,
         )
-        # Riutilizziamo lo slot music_genres per compatibilità pipeline (report) usando l'artista
+        # Reuse the music_genres slot for pipeline compatibility (reports) using artist name
         music_genres = [a if a else 'UNKNOWN' for a in artist_names]
         source_label = 'msd'
-    print(f"Origine feature: {source_label}")
+    print(f"Feature source: {source_label}")
     print("Shape feature array:", features.shape)
 
-    # Rimozione dei duplicati
+    # Remove duplicate feature vectors
     features, unique_indices = np.unique(features, axis=0, return_index=True)
     filenames = [filenames[i] for i in unique_indices]
     music_genres = [music_genres[i] for i in unique_indices]
-    print("Shape feature array dopo rimozione duplicati:", features.shape)
+    print("Shape feature array after duplicate removal:", features.shape)
 
-    # Normalizzazione delle feature con scaler selezionabile
+    # Feature scaling with user-selected scaler
     if args.scaler == 'standard':
         scaler = StandardScaler()
     else:
         scaler = MinMaxScaler()
-    print(f"Scaler selezionato: {scaler.__class__.__name__}")
+    print(f"Selected scaler: {scaler.__class__.__name__}")
     features_norm = scaler.fit_transform(features)
 
-    # Copia per report dettagliato (prima della PCA)
+    # Copy for detailed report (before PCA)
     features_norm_original = features_norm.copy()
 
-    # Riduzione della dimensionalità con PCA
+    # Dimensionality reduction with PCA
     pca = PCA(n_components=PCA_COMPONENTS, svd_solver='full', random_state=42)
     features_reduced = pca.fit_transform(features_norm)
-    print("Shape feature array dopo PCA:", features_reduced.shape)
+    print("Shape feature array after PCA:", features_reduced.shape)
 
     if args.mode == 'single':
         # =========================== SPECTRAL CLUSTERING ===========================
@@ -281,11 +281,11 @@ if __name__ == "__main__":
             metric=DBSCAN_METRIC,
         )
 
-        print("\nPipeline completata (Spectral + K-Means + DBSCAN)")
+        print("\nPipeline completed (Spectral + K-Means + DBSCAN)")
     else:
         which = set(args.which) if args.which else {'spectral', 'kmeans', 'dbscan'}
         if 'spectral' in which:
-            print("\n[GRID] Avvio grid search per Spectral Clustering...")
+            print("\n[GRID] Starting grid search for Spectral Clustering...")
             grid_search_spectral(
                 filenames,
                 features_reduced,
@@ -296,7 +296,7 @@ if __name__ == "__main__":
                 param_grid=SPECTRAL_PARAM_GRID,
             )
         if 'kmeans' in which:
-            print("\n[GRID] Avvio grid search per K-Means...")
+            print("\n[GRID] Starting grid search for K-Means...")
             grid_search_kmeans(
                 filenames,
                 features_reduced,
@@ -307,7 +307,7 @@ if __name__ == "__main__":
                 param_grid=KMEANS_PARAM_GRID,
             )
         if 'dbscan' in which:
-            print("\n[GRID] Avvio grid search per DBSCAN...")
+            print("\n[GRID] Starting grid search for DBSCAN...")
 
             # get first value in this list DBSCAN_PARAM_GRID.get('eps') as a starting point, and stopping point take the last value
             eps = DBSCAN_PARAM_GRID.get('eps', [])
@@ -324,4 +324,4 @@ if __name__ == "__main__":
                 base_results_dir=RESULTS_DBSCAN,
                 param_grid=DBSCAN_PARAM_GRID,
             )
-        print("\nGrid search completata.")
+        print("\nGrid search completed.")

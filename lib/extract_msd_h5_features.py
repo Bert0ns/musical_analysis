@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from dataset.TheMillionSongDataset_subset import hdf5_getters as GET
 
-# Campi scalari diretti (se esistono) -> verranno letti con fallback a NaN
+# Direct scalar fields (if present) -> read with NaN fallback
 SCALAR_GETTERS = [
     'danceability','duration','end_of_fade_in','energy','key','key_confidence',
     'loudness','mode','mode_confidence','start_of_fade_out','tempo',
@@ -15,7 +15,7 @@ SCALAR_GETTERS = [
     'artist_hotttnesss','song_hotttnesss'
 ]
 
-# Array per cui calcoliamo statistiche. Nome getter -> tipo (matrix/pitch/timbre/array)
+# Arrays for which we compute stats. Getter name -> type (matrix/pitch/timbre/array)
 ARRAY_GETTERS = {
     'segments_pitches': 'matrix_pitch',   # (N,12)
     'segments_timbre': 'matrix_timbre',   # (N,12)
@@ -35,7 +35,7 @@ ARRAY_GETTERS = {
 
 
 def _safe_call(funcname: str, h5, songidx: int):
-    """Chiama getter se esiste, altrimenti restituisce np.nan."""
+    """Call getter if it exists, otherwise return np.nan."""
     fn = getattr(GET, f'get_{funcname}', None)
     if fn is None:
         return math.nan
@@ -69,7 +69,7 @@ def _stat_array(name: str, arr: np.ndarray, feats: Dict[str, float]):
 
 
 def _delta_stats(name: str, arr: np.ndarray, feats: Dict[str, float]):
-    """Statistiche sugli intervalli (differenze successive)."""
+    """Stats on intervals (successive differences)."""
     a = np.asarray(arr)
     if a.size < 2:
         feats[f'{name}_delta_mean'] = 0.0
@@ -86,32 +86,32 @@ def _delta_stats(name: str, arr: np.ndarray, feats: Dict[str, float]):
 
 def _matrix_stats(base: str, mat: np.ndarray, feats: Dict[str, float]):
     m = np.asarray(mat) if mat is not None else np.asarray([])
-    # Gestione casi: None, vuoto, 1D, oppure 2D classico
+    # Handle cases: None, empty, 1D, or standard 2D
     if m.size == 0:
         for i in range(12):  # assumiamo 12 dimensioni desiderate (pitch/timbre)
             feats[f'{base}_{i}_mean'] = 0.0
             feats[f'{base}_{i}_std'] = 0.0
         return
     if m.ndim == 1:
-        # Se 1D (es. lunghezza 12) trattiamo come una singola "riga"
+        # If 1D (e.g., length 12) treat as a single row
         length = m.shape[0]
         for i in range(length):
             val = float(m[i]) if not (math.isnan(m[i]) or math.isinf(m[i])) else 0.0
             feats[f'{base}_{i}_mean'] = val
             feats[f'{base}_{i}_std'] = 0.0
-        # Se meno di 12 colonne, completa a 12 per consistenza
+        # If fewer than 12 columns, pad to 12 for consistency
         for i in range(length, 12):
             feats[f'{base}_{i}_mean'] = 0.0
             feats[f'{base}_{i}_std'] = 0.0
         return
     if m.ndim != 2:
-        # Forma inaspettata: fallback a zeri
+        # Unexpected shape: fall back to zeros
         for i in range(12):
             feats[f'{base}_{i}_mean'] = 0.0
             feats[f'{base}_{i}_std'] = 0.0
         return
     cols = m.shape[1]
-    # Limita a 12 se più grande, oppure completa se più piccolo
+    # Limit to 12 if larger, or pad if smaller
     for i in range(min(cols, 12)):
         col = m[:, i]
         if col.size == 0:
@@ -128,12 +128,12 @@ def _matrix_stats(base: str, mat: np.ndarray, feats: Dict[str, float]):
 def extract_song_features(h5, songidx: int) -> Tuple[Dict[str, Any], List[str]]:
     feats: Dict[str, float] = {}
 
-    # Campi scalari
+    # Scalar fields
     for name in SCALAR_GETTERS:
         val = _safe_call(name, h5, songidx)
         try:
             if isinstance(val, (bytes, str)):
-                # Ignora stringhe (non usate per clustering); salva come lunghezza
+                # Ignore strings (not used for clustering); store length
                 feats[f'{name}_strlen'] = float(len(val))
             else:
                 fval = float(val)
@@ -143,7 +143,7 @@ def extract_song_features(h5, songidx: int) -> Tuple[Dict[str, Any], List[str]]:
         except Exception:
             feats[name] = 0.0
 
-    # Array e matrici
+    # Arrays and matrices
     for getter, kind in ARRAY_GETTERS.items():
         fn = getattr(GET, f'get_{getter}', None)
         if fn is None:
@@ -156,20 +156,20 @@ def extract_song_features(h5, songidx: int) -> Tuple[Dict[str, Any], List[str]]:
             _matrix_stats(getter, arr, feats)
         else:
             _stat_array(getter, arr, feats)
-            # delta stats per start arrays
+            # Delta stats for *_start arrays
             if getter.endswith('_start'):
                 _delta_stats(getter, arr, feats)
 
-    # Derivate su segments_timbre (energia media timbrica)
+    # Derived feature from segments_timbre (average timbre energy)
     if 'segments_timbre_0_mean' in feats and 'segments_timbre_0_std' in feats:
-        # Esempio di feature aggregata personalizzata
+        # Example of a custom aggregated feature
         timbre_means = [v for k, v in feats.items() if k.startswith('segments_timbre_') and k.endswith('_mean')]
         if timbre_means:
             feats['segments_timbre_global_mean'] = float(np.mean(timbre_means))
 
-    # Normalizzazione semplice di key/mode/time_signature (già numerici) -> nessuna
+    # Simple normalization for key/mode/time_signature (already numeric) -> none
 
-    # Ordine nomi stabile
+    # Stable name ordering
     feature_names = sorted(feats.keys())
     return feats, feature_names
 
@@ -181,17 +181,17 @@ def extract_features_from_h5_file(h5_path: str, verbose: bool=False) -> Tuple[Li
     try:
         h5 = GET.open_h5_file_read(h5_path)
     except Exception as e:
-        print(f'Errore apertura {h5_path}: {e}')
+        print(f'Error opening {h5_path}: {e}')
         return [], np.empty((0,)), []
     try:
         n = GET.get_num_songs(h5)
         if verbose:
-            print(f"  -> {os.path.basename(h5_path)} contiene {n} canzoni", flush=True)
+            print(f"  -> {os.path.basename(h5_path)} contains {n} songs", flush=True)
         for idx in range(n):
             feats, names = extract_song_features(h5, idx)
             if feature_names_master is None:
                 feature_names_master = names
-            # Allineamento (riempi campi mancanti con 0)
+            # Alignment (fill missing fields with 0)
             row = [feats.get(name, 0.0) for name in feature_names_master]
             rows_features.append(row)
             # track id
@@ -226,12 +226,12 @@ def extract_msd_features(root_dir: str, max_files: int | None = None, verbose: b
     all_ids = []
     names_master: List[str] | None = None
     h5_files = walk_msd_h5(root_dir)
-    print(f"Trovati {len(h5_files)} file .h5", flush=True)
+    print(f"Found {len(h5_files)} .h5 files", flush=True)
     if not h5_files:
-        raise ValueError('Nessun file .h5 trovato')
+        raise ValueError('No .h5 files found')
     if max_files is not None:
         h5_files = h5_files[:max_files]
-        print(f"Limite max_files attivo: analizzerò i primi {len(h5_files)} file", flush=True)
+        print(f"max_files limit enabled: analyzing first {len(h5_files)} files", flush=True)
     for i, h5_path in enumerate(tqdm(h5_files, desc='HDF5 files')):
         tids, feats, names = extract_features_from_h5_file(h5_path, verbose=verbose)
         if feats.size == 0:
@@ -242,22 +242,22 @@ def extract_msd_features(root_dir: str, max_files: int | None = None, verbose: b
             all_rows.append(row.tolist())
         all_ids.extend(tids)
         if verbose or (i+1) % log_every == 0:
-            print(f"Processati {i+1}/{len(h5_files)} file (tot rows: {len(all_rows)})", flush=True)
+            print(f"Processed {i+1}/{len(h5_files)} files (total rows: {len(all_rows)})", flush=True)
     if not all_rows:
-        raise ValueError('Nessuna feature estratta')
+        raise ValueError('No features extracted')
     return all_ids, np.asarray(all_rows, dtype=float), names_master or []
 
 
 def load_track_metadata_map(titles_file: str) -> Dict[str, tuple[str,str]]:
-    """Carica file testo lines: track_id<SEP>song_id<SEP>artist_name<SEP>song_title.
-    Ritorna dict {track_id: (song_title, artist_name)}.
-    Mantiene il primo valore incontrato per duplicati.
+    """Load text file with lines: track_id<SEP>song_id<SEP>artist_name<SEP>song_title.
+    Returns dict {track_id: (song_title, artist_name)}.
+    Keeps the first value encountered for duplicates.
     """
     mapping: Dict[str, tuple[str,str]] = {}
     if not titles_file:
         return mapping
     if not os.path.isfile(titles_file):
-        print(f"ATTENZIONE: file titoli non trovato: {titles_file}")
+        print(f"WARNING: titles file not found: {titles_file}")
         return mapping
     with open(titles_file, 'r', encoding='utf-8', errors='ignore') as f:
         for line in f:
@@ -272,7 +272,7 @@ def load_track_metadata_map(titles_file: str) -> Dict[str, tuple[str,str]]:
             song_title = parts[3].strip()
             if track_id and track_id not in mapping:
                 mapping[track_id] = (song_title, artist_name)
-    print(f"Caricati {len(mapping)} titoli+artisti da mapping")
+    print(f"Loaded {len(mapping)} titles+artists from mapping")
     return mapping
 
 
@@ -293,26 +293,26 @@ def save_msd_features_csv(id_or_titles: List[str], feature_array: np.ndarray, fe
 
 
 def get_msd_h5_features(root_dir: str | None, csv_output: str | None, max_files: int | None = None, verbose: bool=False, titles_file: str | None = None):
-    """Estrae (o carica) feature dal Million Song Dataset.
+    """Extract (or load) features from the Million Song Dataset.
 
-    Ritorna tuple compatibile con get_audio_features:
+    Returns a tuple compatible with get_audio_features:
         (filenames_or_titles, artist_names_list, feature_array, feature_names)
-    Dove artist_names_list può essere una lista di stringhe vuote se non disponibile.
+    artist_names_list may be a list of empty strings if not available.
     """
     if root_dir is None and csv_output is None:
-        raise ValueError('Deve essere fornita almeno una delle due opzioni: root_dir oppure csv_output')
+        raise ValueError('At least one option must be provided: root_dir or csv_output')
 
-    # Se esiste già il CSV lo ricarichiamo (accetta header track_id oppure song_title+artist_name)
+    # Reload existing CSV if present (supports track_id or song_title+artist_name header)
     if csv_output is not None and os.path.exists(csv_output):
         with open(csv_output, 'r', encoding='utf-8') as f:
             r = csv.reader(f)
             try:
                 header = next(r)
             except StopIteration:
-                raise ValueError(f"CSV vuoto: {csv_output}")
+                raise ValueError(f"Empty CSV: {csv_output}")
             if not header:
-                raise ValueError(f"Header CSV non valido: {csv_output}")
-            # Caso: song_title + artist_name + features
+                raise ValueError(f"Invalid CSV header: {csv_output}")
+            # Case: song_title + artist_name + features
             if len(header) >= 3 and header[0] == 'song_title' and header[1] == 'artist_name':
                 feature_names = header[2:]
                 titles: List[str] = []
@@ -325,7 +325,7 @@ def get_msd_h5_features(root_dir: str | None, csv_output: str | None, max_files:
                     artists.append(line[1])
                     rows.append([float(x) for x in line[2:]])
                 return titles, artists, np.asarray(rows, dtype=float), feature_names
-            # Caso: track_id + features (nessun artista)
+            # Case: track_id + features (no artist)
             else:
                 feature_names = header[1:]
                 ids: List[str] = []
@@ -338,10 +338,10 @@ def get_msd_h5_features(root_dir: str | None, csv_output: str | None, max_files:
                 empty_artists = [''] * len(ids)
                 return ids, empty_artists, np.asarray(rows, dtype=float), feature_names
 
-    # Estrazione ex-novo
+    # Fresh extraction
     track_ids, feats, names = extract_msd_features(root_dir, max_files=max_files, verbose=verbose)
 
-    # Mapping metadati se fornito
+    # Metadata mapping if provided
     metadata_map = load_track_metadata_map(titles_file) if titles_file else {}
     if metadata_map:
         song_titles: List[str] = []
@@ -360,14 +360,14 @@ def get_msd_h5_features(root_dir: str | None, csv_output: str | None, max_files:
 
 if __name__ == '__main__':
     import argparse
-    p = argparse.ArgumentParser(description='Estrazione feature da file .h5 (Million Song Dataset)')
-    p.add_argument('root_dir', help='Cartella radice con i file .h5')
-    p.add_argument('output_csv', help='Percorso CSV di output')
-    p.add_argument('--max-files', type=int, default=None, help='Limita il numero di file .h5 da processare (debug)')
-    p.add_argument('--verbose', action='store_true', help='Log dettagliato per ogni file')
-    p.add_argument('--log-every', type=int, default=100, help='Frequenza logging progresso (default 100)')
-    p.add_argument('--titles-file', type=str, default=None, help='File testo mapping track_id<SEP>song_id<SEP>artist_name<SEP>song_title')
+    p = argparse.ArgumentParser(description='Extract features from .h5 files (Million Song Dataset)')
+    p.add_argument('root_dir', help='Root folder containing .h5 files')
+    p.add_argument('output_csv', help='Output CSV path')
+    p.add_argument('--max-files', type=int, default=None, help='Limit number of .h5 files to process (debug)')
+    p.add_argument('--verbose', action='store_true', help='Verbose logging per file')
+    p.add_argument('--log-every', type=int, default=100, help='Progress logging frequency (default 100)')
+    p.add_argument('--titles-file', type=str, default=None, help='Text mapping file track_id<SEP>song_id<SEP>artist_name<SEP>song_title')
     args = p.parse_args()
-    print('Avvio estrazione feature MSD...', flush=True)
+    print('Starting MSD feature extraction...', flush=True)
     titles_or_ids, artists, feats, names = get_msd_h5_features(args.root_dir, args.output_csv, max_files=args.max_files, verbose=args.verbose, titles_file=args.titles_file)
-    print(f'Creato {args.output_csv} con {len(titles_or_ids)} tracce e {len(names)} feature. Artisti mappati: {sum(1 for a in artists if a)}')
+    print(f'Created {args.output_csv} with {len(titles_or_ids)} tracks and {len(names)} features. Artists mapped: {sum(1 for a in artists if a)}')

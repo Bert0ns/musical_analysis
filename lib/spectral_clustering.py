@@ -12,49 +12,50 @@ from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clus
 
 def spectral_clustering_classifier(features, n_clusters=5, gamma=1.0, random_state=42):
     """
-    Crea un classificatore utilizzando l'algoritmo di spectral clustering.
-    :param gamma: parametro per il kernel RBF
-    :param n_clusters: numero di cluster da creare
-    :param features: array delle feature
-    :param random_state: seme per la riproducibilità
-    :return: labels: etichette di cluster assegnate a ogni sample
+    Create a classifier using spectral clustering.
+    :param gamma: RBF kernel parameter
+    :param n_clusters: number of clusters to create
+    :param features: feature array
+    :param random_state: seed for reproducibility
+    :return: labels: cluster labels assigned to each sample
     """
-    # Calcolo della matrice di affinità con kernel RBF
+    # Compute the affinity matrix with an RBF kernel
     affinity_matrix = rbf_kernel(features, gamma=gamma)
 
-    # Applica spectral clustering
+    # Apply spectral clustering
     model = SpectralClustering(n_clusters=n_clusters,
                                affinity='precomputed',
                                random_state=random_state,
                                )
 
-    # Addestra il modello e ottieni le etichette
+    # Fit the model and obtain labels
     labels = model.fit_predict(affinity_matrix)
     return labels
 
 
 def trova_brani_rappresentativi(features, labels, filenames, n=3):
     for cluster_id in np.unique(labels):
-        # Calcola il centro del cluster
+        # Compute cluster centroid
         cluster_idx = np.where(labels == cluster_id)[0]
         cluster_features = features[cluster_idx]
         centro = np.mean(cluster_features, axis=0)
 
-        # Calcola la distanza di ogni brano dal centro
+        # Compute distance of each track from centroid
         distanze = np.linalg.norm(cluster_features - centro, axis=1)
 
-        # Trova i brani più vicini al centro
+        # Find tracks closest to centroid
         idx_piu_vicini = np.argsort(distanze)[:n]
 
-        print(f"\nBrani rappresentativi del Cluster {cluster_id}:")
+        print(f"\nRepresentative tracks for Cluster {cluster_id}:")
         for i in idx_piu_vicini:
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
 
 def sil_dbi_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 20), fig_name='clustering_results/silhouette_analysis_spectral_clustering.png', show_fig=False):
-    """Esegue un'analisi con Silhouette Score e Davies-Bouldin Index per diversi k
-    utilizzando lo spectral clustering. Restituisce i risultati come lista di tuple (k, silhouette_score, dbi).
+    """Run Silhouette Score and Davies-Bouldin Index analysis over k values using spectral clustering.
+
+    Returns results as a list of tuples (k, silhouette_score, dbi).
     """
     risultati = []  # (k, sil, dbi)
     for k in range(range_k[0], range_k[1]):
@@ -64,15 +65,15 @@ def sil_dbi_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 
             dbi = davies_bouldin_score(features, labels_k)
             risultati.append((k, sil, dbi))
         except Exception:
-            # Alcune combinazioni di k/gamma possono fallire; ignoro e proseguo
+            # Some k/gamma combinations can fail; skip and continue
             pass
 
-    # Se non ci sono risultati validi, esci senza creare figure
+    # If there are no valid results, exit without generating figures
     if not risultati:
-        print("[silhouette/dbi] Nessun risultato valido ottenuto: salto la generazione della figura.")
+        print("[silhouette/dbi] No valid results: skipping figure generation.")
         return risultati
 
-    # Plot dei risultati con doppio asse Y
+    # Plot results with dual Y axes
     k_values = [r[0] for r in risultati]
     sil_values = [r[1] for r in risultati]
     dbi_values = [r[2] for r in risultati]
@@ -87,26 +88,26 @@ def sil_dbi_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 
 
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
-    # Silhouette (asse sinistro)
+    # Silhouette (left axis)
     line1 = ax1.plot(k_values, sil_values, 'o-', color='tab:blue', label='Silhouette Score')
-    ax1.set_xlabel('Numero di cluster (k)')
+    ax1.set_xlabel('Number of clusters (k)')
     ax1.set_ylabel('Silhouette Score', color='tab:blue')
     ax1.tick_params(axis='y', labelcolor='tab:blue')
     ax1.grid(True, which='both', linestyle='--', alpha=0.4)
 
-    # Davies-Bouldin (asse destro)
+    # Davies-Bouldin (right axis)
     ax2 = ax1.twinx()
     line2 = ax2.plot(k_values, dbi_values, 's--', color='tab:red', label='Davies-Bouldin Index')
     ax2.set_ylabel('Davies-Bouldin Index', color='tab:red')
     ax2.tick_params(axis='y', labelcolor='tab:red')
 
-    # Legenda combinata
+    # Combined legend
     lines = line1 + line2
     legend_labels: List[str] = [str(ln.get_label()) for ln in lines]
     ax1.legend(lines, legend_labels, loc='best')
 
     plt.title(
-        f'Analisi Silhouette & Davies-Bouldin Spectral Clustering (best Sil k={best_sil_k}, {best_sil:.3f}; '
+        f'Silhouette & Davies-Bouldin Analysis (Spectral Clustering) (best Sil k={best_sil_k}, {best_sil:.3f}; '
         f'best DBI k={best_dbi_k}, {best_dbi:.3f})'
     )
 
@@ -114,7 +115,7 @@ def sil_dbi_score_analysis_spectral_clustering(features, gamma=0.1, range_k=(2, 
     fig.savefig(fig_name)
     if show_fig:
         plt.show()
-    # Chiude esplicitamente la figura per evitare accumulo in memoria
+    # Explicitly close the figure to avoid memory buildup
     plt.close(fig)
 
     return risultati
@@ -131,24 +132,24 @@ def run_spectral_clustering_pipeline(
         gamma: float,
         report_detailed: bool = False,
 ):
-    """Esegue l'intera pipeline di spectral clustering e salva grafici/report.
+    """Run the full spectral clustering pipeline and save plots/reports.
 
-    Ritorna: labels prodotti dallo spectral clustering.
+    Returns: labels produced by spectral clustering.
     """
     os.makedirs(results_dir, exist_ok=True)
 
-    print(f"Esecuzione del spectral clustering con {n_clusters} cluster...")
+    print(f"Running spectral clustering with {n_clusters} clusters...")
     spectral_clustering_labels = spectral_clustering_classifier(features=features_reduced, n_clusters=n_clusters, gamma=gamma)
 
     print("Spectral clustering classification completed!")
     plot_clusters_results(filenames, features_reduced, spectral_clustering_labels, results_dir + "/clusters_plot.png")
 
-    print("Analisi dei cluster (Spectral)...")
+    print("Cluster analysis (Spectral)...")
     #trova_brani_rappresentativi(features_reduced, spectral_clustering_labels, filenames)
     plot_tsne_clustering(features_reduced, spectral_clustering_labels, filenames, results_dir + "/tsne_clusters_plot.png")
     sil, dbi = computer_clustering_scores(features_reduced, spectral_clustering_labels)
 
-    print("Generazione report Markdown spectral clustering...")
+    print("Generating spectral clustering Markdown report...")
     report_path = salva_risultati_markdown(
         filenames,
         features_reduced,
@@ -158,20 +159,20 @@ def run_spectral_clustering_pipeline(
         n_repr=5,
         generi=music_genres,
     )
-    print(f"Report generato: {report_path}")
+    print(f"Report generated: {report_path}")
     if report_detailed:
         report_detailed_path = salva_risultati_markdown(
             filenames,
             features_norm_original,
             spectral_clustering_labels,
             feature_names=features_names,
-            path=results_dir + "/report_dettagliato_feature_originali_SC.md",
+            path=results_dir + "/report_detailed_original_features_SC.md",
             n_repr=5,
             generi=music_genres,
         )
-        print(f"Report dettagliato generato: {report_detailed_path}")
+        print(f"Detailed report generated: {report_detailed_path}")
 
-    # Analisi del silhouette score per diversi numeri di cluster
+    # Silhouette score analysis across cluster counts
     sil_dbi_score_analysis_spectral_clustering(
         features_reduced,
         gamma=gamma,

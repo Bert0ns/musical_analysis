@@ -10,18 +10,18 @@ from lib.utils import plot_clusters_results, plot_tsne_clustering, computer_clus
 
 
 def kmeans_clustering_classifier(features, n_clusters=5, n_init='auto', random_state=42, max_iter=300):
-    """Esegue K-Means sul set di feature e restituisce le etichette e i centroidi.
+    """Run K-Means on the feature set and return labels and centroids.
 
-    Parametri:
-        features (np.ndarray): matrice (n_samples, n_features)
-        n_clusters (int): numero di cluster
-        n_init: numero di inizializzazioni; se 'auto' e non supportato dalla versione di scikit-learn si fa fallback a 10.
-        random_state (int): seme random per riproducibilità
-        max_iter (int): numero massimo iterazioni
+    Args:
+        features (np.ndarray): matrix (n_samples, n_features)
+        n_clusters (int): number of clusters
+        n_init: number of initializations; if 'auto' is unsupported, fall back to 10.
+        random_state (int): seed for reproducibility
+        max_iter (int): max number of iterations
 
-    Ritorna:
-        labels (np.ndarray): etichette di cluster
-        centers (np.ndarray): centroidi (n_clusters, n_features)
+    Returns:
+        labels (np.ndarray): cluster labels
+        centers (np.ndarray): centroids (n_clusters, n_features)
     """
     model = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=random_state, max_iter=max_iter)
     labels = model.fit_predict(features)
@@ -29,9 +29,9 @@ def kmeans_clustering_classifier(features, n_clusters=5, n_init='auto', random_s
 
 
 def trova_brani_rappresentativi_kmeans(features, labels, filenames, n=3, centers=None):
-    """Trova i brani più rappresentativi (più vicini al centro) per ogni cluster K-Means.
+    """Find the most representative tracks (closest to centroid) for each K-Means cluster.
 
-    Se centers è None, li calcola dalla media dei punti assegnati.
+    If centers is None, compute them from the mean of assigned points.
     """
     labels = np.asarray(labels)
     for cluster_id in np.unique(labels):
@@ -43,16 +43,16 @@ def trova_brani_rappresentativi_kmeans(features, labels, filenames, n=3, centers
             centro = np.mean(cluster_features, axis=0)
         distanze = np.linalg.norm(cluster_features - centro, axis=1)
         idx_piu_vicini = np.argsort(distanze)[:min(n, len(distanze))]
-        print(f"\nBrani rappresentativi (K-Means) del Cluster {cluster_id}:")
+        print(f"\nRepresentative tracks (K-Means) for Cluster {cluster_id}:")
         for i in idx_piu_vicini:
             print(f"  - {filenames[cluster_idx[i]]}")
 
 
 def sil_dbi_score_analysis_kmeans(features, range_k=(2, 20),
                                   fig_name='clustering_results/sil_dbi_analysis_kmeans.png', show_fig=False):
-    """Calcola Silhouette Score e Davies-Bouldin Index per un range di k e genera un grafico con doppio asse y.
+    """Compute Silhouette Score and Davies-Bouldin Index over a range of k with a dual-axis plot.
 
-    Ritorna: lista di tuple (k, silhouette, dbi)
+    Returns: list of tuples (k, silhouette, dbi)
     """
     risultati = []  # (k, sil, dbi)
     for k in range(range_k[0], range_k[1]):
@@ -80,26 +80,26 @@ def sil_dbi_score_analysis_kmeans(features, range_k=(2, 20),
 
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
-    # Silhouette (asse sinistro)
+    # Silhouette (left axis)
     line1 = ax1.plot(k_values, sil_values, 'o-', color='tab:blue', label='Silhouette Score')
-    ax1.set_xlabel('Numero di cluster (k)')
+    ax1.set_xlabel('Number of clusters (k)')
     ax1.set_ylabel('Silhouette Score', color='tab:blue')
     ax1.tick_params(axis='y', labelcolor='tab:blue')
     ax1.grid(True, which='both', linestyle='--', alpha=0.4)
 
-    # Davies-Bouldin (asse destro)
+    # Davies-Bouldin (right axis)
     ax2 = ax1.twinx()
     line2 = ax2.plot(k_values, dbi_values, 's--', color='tab:red', label='Davies-Bouldin Index')
     ax2.set_ylabel('Davies-Bouldin Index', color='tab:red')
     ax2.tick_params(axis='y', labelcolor='tab:red')
 
-    # Legenda combinata
+    # Combined legend
     lines = line1 + line2
     legend_labels: List[str] = [str(ln.get_label()) for ln in lines]
     ax1.legend(lines, legend_labels, loc='best')
 
     plt.title(
-        f'Analisi Silhouette & Davies-Bouldin K-Means (best Sil k={best_sil_k}, {best_sil_val:.3f}; '
+        f'Silhouette & Davies-Bouldin Analysis (K-Means) (best Sil k={best_sil_k}, {best_sil_val:.3f}; '
         f'best DBI k={best_dbi_k}, {best_dbi_val:.3f})'
     )
 
@@ -113,7 +113,7 @@ def sil_dbi_score_analysis_kmeans(features, range_k=(2, 20),
 
 def elbow_method_kmeans(features, range_k=(2, 20), fig_name='clustering_results/elbow_analysis_kmeans.png',
                         show_fig=False):
-    """Calcola l'inertia (somma quadrati entro-cluster) per diversi k e genera grafico elbow."""
+    """Compute inertia (within-cluster sum of squares) for k values and plot the elbow curve."""
     risultati = []  # (k, inertia)
     for k in range(range_k[0], range_k[1]):
         try:
@@ -131,8 +131,8 @@ def elbow_method_kmeans(features, range_k=(2, 20), fig_name='clustering_results/
     inertia_values = [r[1] for r in risultati]
     fig = plt.figure(figsize=(10, 6))
     plt.plot(k_values, inertia_values, 'o-')
-    plt.xlabel('Numero di cluster (k)')
-    plt.ylabel('Inertia (Somma quadrati entro-cluster)')
+    plt.xlabel('Number of clusters (k)')
+    plt.ylabel('Inertia (within-cluster sum of squares)')
     plt.title('Elbow Method K-Means')
     plt.grid(True)
     plt.tight_layout()
@@ -153,24 +153,24 @@ def run_kmeans_clustering_pipeline(
         n_clusters: int,
         report_detailed: bool = False,
 ):
-    """Esegue l'intera pipeline di K-Means e salva grafici/report.
+    """Run the full K-Means pipeline and save plots/reports.
 
-    Ritorna: (labels, centri)
+    Returns: (labels, centers)
     """
     os.makedirs(results_dir, exist_ok=True)
 
-    print(f"\nEsecuzione del K-Means clustering con {n_clusters} cluster...")
+    print(f"\nRunning K-Means clustering with {n_clusters} clusters...")
     kmeans_labels, kmeans_centers = kmeans_clustering_classifier(features_reduced, n_clusters=n_clusters)
     print("K-Means clustering completed!")
 
     plot_clusters_results(filenames, features_reduced, kmeans_labels, results_dir + "/clusters_plot_kmeans.png")
     plot_tsne_clustering(features_reduced, kmeans_labels, filenames, results_dir + "/tsne_clusters_plot_kmeans.png")
 
-    print("Analisi dei cluster (K-Means)...")
+    print("Cluster analysis (K-Means)...")
     trova_brani_rappresentativi_kmeans(features_reduced, kmeans_labels, filenames, n=5, centers=kmeans_centers)
     sil, dbi = computer_clustering_scores(features_reduced, kmeans_labels)
 
-    print("Generazione report Markdown K-Means...")
+    print("Generating K-Means Markdown report...")
     report_km = salva_risultati_markdown(
         filenames,
         features_reduced,
@@ -182,21 +182,21 @@ def run_kmeans_clustering_pipeline(
         sil=sil,
         dbi=dbi,
     )
-    print(f"Report K-Means generato: {report_km}")
+    print(f"K-Means report generated: {report_km}")
     if report_detailed:
         report_km_detailed = salva_risultati_markdown(filenames, features_norm_original, kmeans_labels,
                                                       feature_names=features_names,
-                                                      path=results_dir + "/report_dettagliato_feature_originali_KM.md",
+                                                      path=results_dir + "/report_detailed_original_features_KM.md",
                                                       n_repr=5, generi=music_genres, sil=sil, dbi=dbi)
-        print(f"Report dettagliato K-Means generato: {report_km_detailed}")
+        print(f"K-Means detailed report generated: {report_km_detailed}")
 
-    # Analisi silhouette K-Means
+    # K-Means silhouette analysis
     sil_dbi_score_analysis_kmeans(
         features_reduced,
         range_k=(2, 20),
         fig_name=results_dir + "/sil_dbi_analysis_kmeans.png",
     )
-    # Elbow method K-Means
+    # K-Means elbow method
     elbow_method_kmeans(
         features_reduced,
         range_k=(2, 20),
